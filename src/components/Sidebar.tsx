@@ -51,7 +51,7 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
     <aside
       className={`flex flex-col h-full transition-all duration-300 ${
         collapsed ? "w-20" : "w-56"
-      } bg-white border-r border-gray-100 rounded-2xl shadow-sm p-4`}
+      } bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm p-4`}
     >
       {/* Logo */}
       <div className={`flex items-center mb-6 ${collapsed ? "justify-center" : "justify-between"}`}>
@@ -61,7 +61,7 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
             </div>
 
             {!collapsed && (
-            <span className="font-semibold text-gray-800 text-sm">
+            <span className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
                 TaskFlow
             </span>
             )}
@@ -69,7 +69,7 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
 
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 ml-auto"
+          className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 ml-auto"
         >
           {collapsed ? <ChevronRightIcon size={16} /> : <ChevronLeft size={16} />}
         </button>
@@ -77,7 +77,7 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
 
       {/* Main Menu */}
       {!collapsed && (
-        <p className="text-[10px] uppercase tracking-widest text-gray-400 font-medium mb-2 px-1">
+        <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-2 px-1">
           Main Menu
         </p>
       )}
@@ -86,7 +86,7 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
         {/* Add Task button */}
         <button
           onClick={() =>setModalOpen(true)}
-          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-bold text-indigo-600 hover:bg-indigo-100 transition-colors w-full text-left mb-1"
+          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors w-full text-left mb-1"
         >
           <CirclePlus size={15} className="text-indigo-500 flex-shrink-0" />
           {!collapsed && <span>Add Task</span>}
@@ -98,8 +98,8 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
             onClick={() => onNavigate(label)}
             className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors w-full text-left ${
               activePage === label
-                ? "bg-indigo-50 text-indigo-600 font-medium"
-                : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium"
+                : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-700 dark:hover:text-gray-200"
             }`}
           >
             <Icon size={15} />
@@ -112,10 +112,10 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
 
         <>
           <div className={`flex items-center ${!collapsed ? "justify-between px-1 mb-2" : "justify-center"}`}>
-            <p className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">
+            <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium">
               {!collapsed && "Projects"}
             </p>
-            <button className={`text-indigo-400 hover:text-indigo-600`}>
+            <button className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300">
               <Plus size={14} />
             </button>
           </div>
@@ -128,11 +128,10 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
                 className={`flex items-center ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-2.5 py-2 text-left"
                     } rounded-lg text-sm transition-colors w-full ${
                     activePage === label
-                        ? "bg-indigo-50 text-indigo-600 font-medium"
-                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                        ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-700 dark:hover:text-gray-200"
                     }`}
               >
-                {/*<Folder size={14} className="flex-shrink-0" />*/}
                 <span className="truncate">{icon} {!collapsed && label}</span>
               </button>
             ))}
@@ -141,9 +140,7 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
 
 
       {/* Upgrade Card */}
-  
       {/* {!collapsed && (
-        
         <div className="mt-4 bg-indigo-500 rounded-xl p-3 text-white relative overflow-hidden">
           <div className="absolute -right-3 -top-3 w-14 h-14 bg-indigo-400 rounded-full opacity-30" />
           <div className="absolute -right-1 top-4 w-8 h-8 bg-indigo-300 rounded-full opacity-20" />
@@ -163,23 +160,23 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
       <div className="mt-4 flex flex-col gap-1">
         {!collapsed && (
           <>
-            <button className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg">
+            <button className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg">
               <Send size={13} /> Invites
             </button>
-            <button className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg">
+            <button className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg">
               <HelpCircle size={13} /> FAQs
             </button>
           </>
         )}
 
         {/* Theme Toggle */}
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 mt-1">
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700/50 rounded-lg p-1 mt-1">
           <button
             onClick={() => onToggleTheme("light")}
             className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-xs transition-colors ${
               theme === "light"
-                ? "bg-white text-gray-700 shadow-sm font-medium"
-                : "text-gray-400"
+                ? "bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-100 shadow-sm font-medium"
+                : "text-gray-400 dark:text-gray-500"
             }`}
           >
             <Sun size={11} />
@@ -189,8 +186,8 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
             onClick={() => onToggleTheme("dark")}
             className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-xs transition-colors ${
               theme === "dark"
-                ? "bg-white text-gray-700 shadow-sm font-medium"
-                : "text-gray-400"
+                ? "bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-100 shadow-sm font-medium"
+                : "text-gray-400 dark:text-gray-500"
             }`}
           >
             <Moon size={11} />
@@ -206,14 +203,14 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
             </div>
             
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-700 truncate">
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">
                 Pristia Candra
               </p>
-              <p className="text-[10px] text-gray-400 truncate">
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
                 @nameless.pristia #112
               </p>
             </div>
-            <ChevronDown size={12} className="text-gray-400 flex-shrink-0" />
+            <ChevronDown size={12} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 "use client";
-import { useState} from "react";
+import { useState, useEffect} from "react";
 import AIAssistant from "@/components/AIAssistant"
 import Sidebar from "@/components/Sidebar"
 import Today from "@/components/Today"
@@ -12,6 +12,15 @@ export default function Home() {
   const [theme, setTheme] = useState("light");
   const [aiOpen, setAiOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState("Today");
+
+  // Sync the "dark" class on <html> whenever theme changes
+  useEffect(() => {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [theme]);
 
   return (   
     //sidebar and taskboard components are passed to TaskProvider as the children prop

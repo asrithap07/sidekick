@@ -52,6 +52,8 @@ type TaskItemProps = {
   onDelete: () => void;
 };
 
+
+
 //here we are making a component called TaskItem that receives a task object, a function to toggle it, and a function to delete it 
 // (its called by taskboard)
 export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
@@ -64,12 +66,12 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
     if (!task.dueDate) return null;
     const due = new Date(task.dueDate + "T00:00:00");
     if (isNaN(due.getTime())) return null;
-
+ 
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const dueStart  = new Date(due.getFullYear(),  due.getMonth(),  due.getDate());
     const diffDays  = Math.round((dueStart.getTime() - todayStart.getTime()) / 86_400_000);
-
+ 
     let label: string;
     if (diffDays === 0)       label = "Today";
     else if (diffDays === 1)  label = "Tomorrow";
@@ -77,33 +79,33 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
     else if (diffDays < 0)    label = `${Math.abs(diffDays)}d overdue`;
     else if (diffDays < 7)    label = due.toLocaleDateString("en-US", { weekday: "short" });
     else                      label = due.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-
+ 
     // Urgency tiers (muted when done)
     let style: string;
     if (task.done) {
-      style = "text-gray-300";
+      style = "text-gray-300 dark:text-gray-600";
     } else if (diffDays < 0) {
-      style = "text-red-900";
+      style = "text-red-400 border border-red-100 dark:border-red-800";
     } else if (diffDays === 0) {
-      style = "text-red-400";
+      style = "text-indigo-500 dark:text-indigo-400";
     } else if (diffDays <= 2) {
-      style = "text-orange-400";
+      style = "text-amber-500";
     } else {
-      style = "text-gray-400";
+      style = "text-gray-400 dark:text-gray-500";
     }
-
+ 
     return { label, style };
   })();
 
   return (
-    <div className="group flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 transition-colors">
-      {/* Checkbox */}
+    <div className="group flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+      {/* Checkbox — aligned to the top when there are tags */}
       <button
         onClick={onToggle}
         className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
           task.done
             ? "bg-indigo-500 border-indigo-500"
-            : "border-gray-300 hover:border-indigo-400"
+            : "border-gray-300 dark:border-gray-500 hover:border-indigo-400 dark:hover:border-indigo-500"
         }`}
       >
         {task.done && (
@@ -123,7 +125,7 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
       <div className="flex-1 min-w-0">
         <span
           className={`text-sm transition-colors ${
-            task.done ? "line-through text-gray-300" : "text-gray-800"
+            task.done ? "line-through text-gray-300 dark:text-gray-600" : "text-gray-800 dark:text-gray-100"
           }`}
         >
           {task.label}
@@ -133,8 +135,8 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             {task.tags!.map((tag: string, i: number) => (
               <span key={tag} className="flex items-center gap-1">
-                {i > 0 && <span className="text-gray-300 text-xs">•</span>}
-                <span className={`text-[12px] font-medium ${task.done ? "text-gray-300" : getTagColor(tag)}`}>
+                {i > 0 && <span className="text-gray-300 dark:text-gray-600 text-xs">•</span>}
+                <span className={`text-[12px] font-medium ${task.done ? "text-gray-300 dark:text-gray-600" : getTagColor(tag)}`}>
                   {tag}
                 </span>
               </span>
@@ -147,16 +149,16 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
       <div className="flex flex-col items-end gap-1 flex-shrink-0">
         <span
           className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1 ${task.done
-        ? "bg-gray-50 text-gray-300 border border-gray-100"
+        ? "bg-gray-50 dark:bg-gray-700 text-gray-300 dark:text-gray-600 border border-gray-100 dark:border-gray-600"
         : priority.badge
         }`}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${task.done ? "bg-gray-200" : priority.dot}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${task.done ? "bg-gray-200 dark:bg-gray-500" : priority.dot}`} />
           {priority.label}
         </span>
 
         {task.project && (
-          <span className="text-[11px] text-gray-400">{task.project}</span>
+          <span className="text-[11px] text-gray-400 dark:text-gray-500">{task.project}</span>
         )}
         {dueDateBadge && (
           <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${dueDateBadge.style}`}>
@@ -169,7 +171,7 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
       {/* Delete — hover reveal */}
       <button
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400"
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 dark:text-gray-600 hover:text-red-400"
       >
         <Trash2 size={14} />
       </button>
