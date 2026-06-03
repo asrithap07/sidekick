@@ -2,14 +2,18 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 
+type AddTaskModalProps = {
+  onClose: () => void;
+  onAdd: (task: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[] }) => void;
+};
 
 //onClose is a function passed in that closes the modal
 //onAdd is a function passed in that adds a new task
-export default function AddTaskModal({ onClose, onAdd }) {
+export default function AddTaskModal({ onClose, onAdd }: AddTaskModalProps) {
   //label starts as an empty string and we can use setLabel to update it when the user types in an input
   const [label, setLabel] = useState("");
   //priority defaults to low and we call setPriority when the user changes it
-  const [priority, setPriority] = useState("low");
+  const [priority, setPriority] = useState<"high" | "medium" | "low">("low");
   //same with dueDate and tagsInput
   const [dueDate, setDueDate] = useState("");
   const [tagsInput, setTagsInput] = useState("");
@@ -73,7 +77,7 @@ export default function AddTaskModal({ onClose, onAdd }) {
               {/*shows the current default priority and allows u to change it through the select input*/}
               <select
                 value={priority}
-                onChange={(e) => setPriority(e.target.value)}
+                onChange={(e) => setPriority(e.target.value as "high" | "medium" | "low")}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
               >
                 <option value="low">Low</option>

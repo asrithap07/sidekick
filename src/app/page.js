@@ -2,13 +2,16 @@
 import { useState} from "react";
 import AIAssistant from "@/components/AIAssistant"
 import Sidebar from "@/components/Sidebar"
-import TaskBoard from "@/components/Taskboard"
+import Today from "@/components/Today"
+import Labels from "@/components/Labels"
 import {TaskProvider, useTasks} from "@/context/TaskContext"
+import Upcoming from "@/components/Upcoming";
 
 
 export default function Home() {
   const [theme, setTheme] = useState("light");
   const [aiOpen, setAiOpen] = useState(true);
+  const [currentPage, setCurrentPage] = useState("Today");
 
   return (   
     //sidebar and taskboard components are passed to TaskProvider as the children prop
@@ -26,7 +29,7 @@ export default function Home() {
           {/* Sidebar 
             giving the sidebar the current theme and passing the function that changes the theme
           */}
-          <Sidebar theme={theme} onToggleTheme={setTheme} />
+          <Sidebar theme={theme} onToggleTheme={setTheme} activePage = {currentPage} onNavigate = {setCurrentPage}/>
 
           {/* Main Task Board 
             Render the TaskBoard component, and give it a function called onOpenAI. 
@@ -34,7 +37,10 @@ export default function Home() {
           */}
           
           <div className="flex-1 min-w-0">
-            <TaskBoard onOpenAI={() => setAiOpen(true)} />
+            {currentPage === "Today" && (< Today onOpenAI={() => setAiOpen(true)} />)}
+            {currentPage === "Labels" && (< Labels onOpenAI={() => setAiOpen(true)} />)}
+            {currentPage === "Upcoming" && (< Upcoming onOpenAI={() => setAiOpen(true)} />)}
+
           </div>
 
           {/* AI Assist Panel 

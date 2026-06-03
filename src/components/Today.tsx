@@ -7,8 +7,11 @@ import TaskItem from "@/components/TaskItem"
 import AddTaskModal from "@/components/AddTaskModal"
  
 
+type TaskBoardProps = {
+  onOpenAI: () => void;
+};
 
-export default function TaskBoard({onOpenAI}) {
+export default function TaskBoard({onOpenAI}: TaskBoardProps) {
     const [newTask, setNewTask] = useState("");
     const [isModalOpen, setModalOpen] = useState(false);
     //call useTasks() to get the value from the context provider
@@ -120,7 +123,7 @@ export default function TaskBoard({onOpenAI}) {
       {isModalOpen && (
         <AddTaskModal
           onClose={() => setModalOpen(false)}
-          onAdd={(task) => 
+          onAdd={(task: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[] }) => 
           {
             addTask(task);
             setModalOpen(false);

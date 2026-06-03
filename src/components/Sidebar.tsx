@@ -32,7 +32,15 @@ const PROJECTS = [
   { icon: "🧑‍💻", label: "Code Project" },
 ];
 
-export default function Sidebar({ onAddTask, theme, onToggleTheme }) {
+type SidebarProps = {
+  onAddTask?: () => void;
+  theme: string;
+  onToggleTheme: (theme: string) => void;
+  activePage: string;
+  onNavigate: (page: string) => void;
+};
+
+export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, onNavigate}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [active, setActive] = useState("Today");
   const [isModalOpen, setModalOpen] = useState(false);
@@ -87,9 +95,9 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme }) {
         {NAV_ITEMS.map(({ icon: Icon, label }) => (
           <button
             key={label}
-            onClick={() => setActive(label)}
+            onClick={() => onNavigate(label)}
             className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors w-full text-left ${
-              active === label
+              activePage === label
                 ? "bg-indigo-50 text-indigo-600 font-medium"
                 : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
             }`}
@@ -116,10 +124,10 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme }) {
             {PROJECTS.map(({ icon, label }) => (
               <button
                 key={label}
-                onClick={() => setActive(label)}
+                onClick={() => onNavigate(label)}
                 className={`flex items-center ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-2.5 py-2 text-left"
                     } rounded-lg text-sm transition-colors w-full ${
-                    active === label
+                    activePage === label
                         ? "bg-indigo-50 text-indigo-600 font-medium"
                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                     }`}
@@ -212,7 +220,7 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme }) {
       {isModalOpen && (
               <AddTaskModal
                 onClose={() => setModalOpen(false)}
-                onAdd={(task) => {
+                onAdd={(task: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[] }) => {
                   addTask(task); //call the onAdd prop that calls addTask to update the tasks state
                   setModalOpen(false); //close the modal after adding
                 }}
