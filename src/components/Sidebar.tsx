@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useState } from "react";
+import Link from "next/link";
 import {
   CheckSquare,
   CalendarDays,
@@ -29,7 +30,9 @@ const NAV_ITEMS = [
 ];
 
 const PROJECTS = [
-  { icon: "🧑‍💻", label: "Code Project" },
+  { icon: "🧑‍💻", label: "Code Project", slug: "code-project"},
+  { icon: "✈️", label: "Japan Trip 2026", slug: "japan-trip-2027"},
+  { icon: "💼", label: "Internship Search", slug: "internship-search"}
 ];
 
 type SidebarProps = {
@@ -39,6 +42,13 @@ type SidebarProps = {
   activePage: string;
   onNavigate: (page: string) => void;
 };
+
+function createSlug(name: string) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replaceAll(" ", "-");
+}
 
 export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, onNavigate}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -93,9 +103,8 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
         </button>
 
         {NAV_ITEMS.map(({ icon: Icon, label }) => (
-          <button
+          <Link href={`/${label.toLowerCase()}`}
             key={label}
-            onClick={() => onNavigate(label)}
             className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors w-full text-left ${
               activePage === label
                 ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium"
@@ -104,7 +113,7 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
           >
             <Icon size={15} />
             {!collapsed && <span className="flex-1 truncate">{label}</span>}
-          </button>
+          </Link> 
         ))}
       </nav>
 
@@ -121,8 +130,9 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
           </div>
 
           <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto">
-            {PROJECTS.map(({ icon, label }) => (
-              <button
+            {PROJECTS.map(({ icon, label, slug }) => (
+              // <button
+              <Link href={`/projects/${slug}`}
                 key={label}
                 onClick={() => onNavigate(label)}
                 className={`flex items-center ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-2.5 py-2 text-left"
@@ -133,7 +143,8 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
                     }`}
               >
                 <span className="truncate">{icon} {!collapsed && label}</span>
-              </button>
+                </Link>
+              // </button>
             ))}
           </div>
         </>
