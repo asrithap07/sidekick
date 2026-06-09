@@ -1,30 +1,75 @@
 "use client";
-import React from "react";
-import {useState} from "react";
-import { Focus, Sparkles, Plus, Info, Trash2, Check } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import {
+  Sparkles, Plus, Info, Focus, Flame, CheckCircle2,
+  Clock, TrendingUp, Lightbulb, ChevronRight, CalendarDays,
+  Zap, Target
+} from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
-import TaskItem from "@/components/TaskItem"
-import AddTaskModal from "@/components/AddTaskModal"
- 
+import { Task } from "@/types/task";
+import TaskItem from "@/components/TaskItem";
+import AddTaskModal from "@/components/AddTaskModal";
+import AIAssistant from "@/components/AIAssistant";
 
 type TaskBoardProps = {
   onOpenAI: () => void;
 };
 
-export default function TaskBoard({onOpenAI}: TaskBoardProps) {
-    const [newTask, setNewTask] = useState("");
-    const [isModalOpen, setModalOpen] = useState(false);
-    //call useTasks() to get the value from the context provider
-    const { tasks, addTask, toggleDone, deleteTask, finishAll } = useTasks();
+// Static for now — wire to Supabase/localStorage later
+const STREAK = 7;
+const MOMENTUM = "+15%";
 
-    return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
-      {/* Header */}
-      <div className="mb-5">
-        <div className="flex items-start justify-between">
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+export default function TaskBoard({ onOpenAI }: TaskBoardProps) {
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const { tasks, addTask, toggleDone, deleteTask, finishAll } = useTasks();
+
+  const stats = useMemo(() => {
+    const total = tasks.length;
+    const done = tasks.filter((t) => t.done).length;
+    const today = new Date();
+    const overdue = tasks.filter((t) => {
+      if (t.done || !t.dueDate) return false;
+      const parts = t.dueDate.split("-").map(Number);
+      if (parts.length !== 3) return false;
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      return d < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    }).length;
+    const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+    return { total, done, overdue, pct };
+  }, [tasks]);
+
+  const insights = useMemo(() => {
+    const msgs: { icon: React.ReactNode; text: string; color: string }[] = [];
+    if (stats.overdue > 0)
+      msgs.push({ icon: <Clock size={13} />, text: `${stats.overdue} overdue task${stats.overdue > 1 ? "s" : ""} need attention`, color: "text-red-500" });
+    const highPriority = tasks.filter((t) => !t.done && t.priority === "high");
+    if (highPriority.length > 0)
+      msgs.push({ icon: <Zap size={13} />, text: `${highPriority.length} high-priority task${highPriority.length > 1 ? "s" : ""} left today`, color: "text-amber-500" });
+    if (stats.pct >= 50 && stats.pct < 100)
+      msgs.push({ icon: <TrendingUp size={13} />, text: `You're ${stats.pct}% done — strong pace`, color: "text-green-500" });
+    if (stats.pct === 100)
+      msgs.push({ icon: <CheckCircle2 size={13} />, text: "All done! Phenomenal day.", color: "text-indigo-500" });
+    return msgs.slice(0, 3);
+  }, [tasks, stats]);
+
+  return (
+    <div className="flex h-full gap-3 overflow-hidden">
+      {/* ── Main board ── */}
+      <div className="flex flex-col flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 leading-tight">
-              Good Morning, Pristia!
+              {getGreeting()}, Pristia!
             </h1>
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
               What do you plan to do today?
@@ -39,92 +84,163 @@ export default function TaskBoard({onOpenAI}: TaskBoardProps) {
           </div>
         </div>
 
-        {/* Profile Score Card */}
-        <div className="mt-4 flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-4 py-3">
-          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-lg">
-            🐼
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-              Nameless Panda #245
-            </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">Microsoft</p>
-          </div>
-          <div className="text-right space-y-0.5">
-            <div className="flex items-center justify-end gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span>Overall Impact Score</span>
-              <span className="text-gray-300 dark:text-gray-600">—</span>
+        {/* ── Stats row ── */}
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          {/* Streak */}
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/30">
+            <span className="text-xl">🔥</span>
+            <div>
+              <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none">{STREAK}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Day streak</p>
             </div>
-            <div className="flex items-center justify-end gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span>Ideal Session Length</span>
-              <span className="text-gray-300 dark:text-gray-600">—</span>
+          </div>
+
+          {/* Completed */}
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/30">
+            <CheckCircle2 size={18} className="text-green-500 shrink-0" />
+            <div>
+              <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none">{stats.pct}%</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{stats.done}/{stats.total} done</p>
+            </div>
+          </div>
+
+          {/* Overdue */}
+          <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${
+            stats.overdue > 0
+              ? "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30"
+              : "bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-700"
+          }`}>
+            <Clock size={18} className={stats.overdue > 0 ? "text-red-400 shrink-0" : "text-gray-300 dark:text-gray-600 shrink-0"} />
+            <div>
+              <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none">{stats.overdue}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Overdue</p>
+            </div>
+          </div>
+
+          {/* Momentum */}
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
+            <TrendingUp size={18} className="text-indigo-500 shrink-0" />
+            <div>
+              <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none">{MOMENTUM}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">vs last week</p>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Today Task Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Today's Tasks</h2>
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            <Focus size={13} />
-            Focus Mode
+        {/* ── Daily Brief ── */}
+        <div className="mb-4 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 bg-gradient-to-r from-indigo-50 via-white to-purple-50 dark:from-indigo-900/20 dark:via-gray-800 dark:to-purple-900/20 p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-semibold text-gray-900 dark:text-white text-sm">Daily Brief</p>
+                <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-medium">
+                  HIGH IMPACT
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                {stats.overdue > 0
+                  ? <>You have <span className="font-semibold">{stats.overdue} overdue task{stats.overdue > 1 ? "s" : ""}</span>. Tackling your highest-priority item first would clear your biggest bottleneck.</>
+                  : <>You're off to a great start! <span className="font-semibold">{stats.done} task{stats.done !== 1 ? "s" : ""} done</span>. Keep the momentum going.</>
+                }
+              </p>
+              <button
+                onClick={() => setAiOpen(true)}
+                className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-600 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
+              >
+                <Sparkles size={12} />
+                View AI Plan
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Insights strip (only shown when there are insights) ── */}
+        {insights.length > 0 && (
+          <div className="mb-4 flex flex-col gap-1.5">
+            {insights.map((ins, i) => (
+              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+                <span className={ins.color}>{ins.icon}</span>
+                <p className="text-xs text-gray-600 dark:text-gray-300 flex-1">{ins.text}</p>
+                <Lightbulb size={12} className="text-gray-300 dark:text-gray-600" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Today's Tasks header ── */}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Today's Tasks</h2>
+          <div className="flex items-center gap-2">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <Focus size={13} />
+              Focus Mode
+            </button>
+            <button
+              onClick={() => setAiOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+            >
+              <Sparkles size={13} />
+              AI Assist
+            </button>
+          </div>
+        </div>
+
+        {/* Task list */}
+        <div className="flex flex-col gap-2 flex-1 overflow-y-auto">
+          {tasks.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={() => toggleDone(task.id)}
+              onDelete={() => deleteTask(task.id)}
+            />
+          ))}
+          {tasks.length === 0 && (
+            <div className="flex flex-col items-center justify-center flex-1 gap-2 text-gray-300 dark:text-gray-600 py-10">
+              <Target size={36} strokeWidth={1.2} />
+              <p className="text-sm text-center">No tasks yet — add one to get started.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            onClick={finishAll}
+            className="px-5 py-2 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition-colors"
+          >
+            Finish
           </button>
           <button
-            onClick={onOpenAI}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <Sparkles size={13} />
-            AI Assist
+            <Plus size={13} />
+            Add Task
+          </button>
+          <button className="ml-auto text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400">
+            <Info size={14} />
           </button>
         </div>
       </div>
 
-      {/* Task List */}
-      <div className="flex flex-col gap-2 flex-1 overflow-y-auto">
-        {
-        //map the tasks and make TaskItem objects with each 
-        // pass onToggle and onDelete as functions that call these with the current task
-        tasks.map((task) => (
-          <TaskItem
-            key={task.id}
-            task={task}
-            onToggle={() => toggleDone(task.id)}
-            onDelete={() => deleteTask(task.id)}
-          />
-        ))
-        }
-      </div>
+      {/* ── AI Assistant panel ── */}
+      {aiOpen && (
+        <AIAssistant
+          onClose={() => setAiOpen(false)}
+          tasks={tasks}
+          stats={stats}
+          streak={STREAK}
+        />
+      )}
 
-      {/*Footer Actions*/}
-      <div className="mt-4 flex items-center gap-2">
-        {/*finish button*/}
-        <button 
-          onClick={finishAll}
-          className="px-5 py-2 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition-colors">
-          Finish
-        </button>
-        {/* add task button */}
-        <button
-          onClick={() =>setModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
-        >
-          <Plus size={13} />
-          Add Task
-        </button>
-        <button className="ml-auto text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400">
-          <Info size={14} />
-        </button>
-      </div>
-      {/* if isModelOpen is true then we render the addTaskModal
-      we pass in a function that calls setModalOpen(false) for the onClose argument
-      we pass in a function that accepts a parameter called task from AddTaskModal's onAdd call and then calls addTask in taskboard.tsx with that task from AddTaskModal */}
       {isModalOpen && (
         <AddTaskModal
           onClose={() => setModalOpen(false)}
-          onAdd={(task: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[] }) => 
-          {
+          onAdd={(task: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[] }) => {
             addTask(task);
             setModalOpen(false);
           }}

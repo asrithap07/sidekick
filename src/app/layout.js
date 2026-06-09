@@ -1,6 +1,6 @@
 "use client";
 
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { useState, useEffect } from "react";
@@ -8,25 +8,13 @@ import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { TaskProvider } from "@/context/TaskContext";
 
-// const geistSans = Geist({
-//   variable: "--font-geist-sans",
-//   subsets: ["latin"],
-// });
-
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
-// export const metadata = {
-//   title: "TaskFlow",
-//   description: "an AI-powered task organizer and productivity app",
-// };
-
-
 export default function RootLayout({ children }) {
   const [theme, setTheme] = useState("light");
-  const [aiOpen, setAiOpen] = useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -35,6 +23,7 @@ export default function RootLayout({ children }) {
     "/today": "Today",
     "/labels": "Labels",
     "/upcoming": "Upcoming",
+    "/goals": "Goals",
   };
   const activePage = pageMap[pathname] ?? "Today";
 
@@ -46,11 +35,12 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <TaskProvider>
-          <div className={`min-h-screen flex items-center justify-center p-6 transition-colors duration-300 ${
-            theme === "dark" ? "bg-gray-900" : "bg-gray-100"
-          }`}>
-            <div className="flex gap-4 w-full max-w-6xl" style={{ height: "calc(100vh - 3rem)" }}>
-              
+          <div
+            className={`h-screen flex items-stretch p-4 transition-colors duration-300 ${
+              theme === "dark" ? "bg-gray-900" : "bg-gray-100"
+            }`}
+          >
+            <div className="flex gap-4 w-full h-full">
               <Sidebar
                 theme={theme}
                 onToggleTheme={setTheme}
@@ -58,16 +48,11 @@ export default function RootLayout({ children }) {
                 onNavigate={(label) => router.push(`/${label.toLowerCase()}`)}
               />
 
-              <div className="flex-1 min-w-0">
+              {/* This flex-1 fills all remaining space — the project page's
+                  own panel lives inside here and pushes content naturally */}
+              <div className="flex-1 min-w-0 overflow-hidden">
                 {children}
               </div>
-
-              {aiOpen && (
-                <div className="w-72 flex-shrink-0">
-                  <AIAssistant onClose={() => setAiOpen(false)} />
-                </div>
-              )}
-
             </div>
           </div>
         </TaskProvider>

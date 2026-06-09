@@ -1,6 +1,7 @@
 "use client";
 import React from "react"
 import { createContext, useContext, useState } from "react";
+import { Task } from "@/types/task";
 
 /*
     context is like a global store for your React app
@@ -8,29 +9,22 @@ import { createContext, useContext, useState } from "react";
     with context we can put data in a shared container (TaskConteext) and any component wrapped in it can read or update the data directly without props
 */
 
-
-
-export type Task = {
-  id: number;
-  label: string;
-  priority: "high" | "medium" | "low";
-  project: string | null;
-  tags?: string[];
-  done: boolean;
-  dueDate: string | undefined;
-};
-
 type TaskContextType = {
   tasks: Task[];
-  addTask: (task: { label: string; priority: "high" | "medium" | "low"; dueDate?: string; tags?: string[] }) => void;
-  toggleDone: (id: number) => void;
-  deleteTask: (id: number) => void;
+  addTask: (task: {
+    label: string;
+    priority: "high" | "medium" | "low";
+    dueDate?: string;
+    tags: string[];
+    }) => void;
+toggleDone: (id: string) => void;
+  deleteTask: (id: string) => void;
   finishAll: () => void;
 };
 
 const INITIAL_TASKS: Task[] = [
     {
-        id: 1, 
+        id: "1", 
         label: "Create UI", 
         priority: "high", 
         project: "CS Project", 
@@ -39,7 +33,7 @@ const INITIAL_TASKS: Task[] = [
         dueDate: "2026-06-02"
     },
     {
-        id: 2,
+        id: "2",
         label: "Apply to 2 summer internships",
         priority: "low",
         project: null,
@@ -48,7 +42,7 @@ const INITIAL_TASKS: Task[] = [
         dueDate: "2026-06-03"
     },
     {
-        id: 3,
+        id: "3",
         label: "go to the gym",
         priority: "medium",
         project: null,
@@ -67,7 +61,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) { //ch
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
 
   //the function takes a task id
-    const toggleDone = (id: number) =>
+    const toggleDone = (id: string) =>
         // we are calling setTasks and giving it a function that takes the prev tasks state and calculates a new one from it
         setTasks((prev) =>
             //we use map to go through every tasks and if that task id 
@@ -77,7 +71,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) { //ch
         );
     
     //the function deleteTask takes a task id
-    const deleteTask = (id: number) =>
+    const deleteTask = (id: string) =>
         //we call setTasks and give it a function that takes the prev tasjs
         //it returns a list of tasks that ids dont match the id given to deleteTask
         setTasks((prev) => prev.filter((t) => t.id !== id));
@@ -89,7 +83,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) { //ch
             //copy all previous tasks
             ...prev,
             // create the new task object and use Date.now() to track id so its easier
-            {id: Date.now(), label: label, priority: priority, project: null, tags: tags, done: false, dueDate: dueDate}
+            {id: crypto.randomUUID(), label: label, priority: priority, project: null, tags: tags ?? [], done: false, dueDate: dueDate}
         ])
         //setNewTask("");
     };

@@ -17,7 +17,7 @@ import {
   Moon,
   Folder,
   ChevronLeft,
-  ChevronRight as ChevronRightIcon,
+  ChevronRight as ChevronRightIcon, Target, Goal
 } from "lucide-react";
 
 import AddTaskModal from "@/components/AddTaskModal"
@@ -26,6 +26,7 @@ import {useTasks} from "@/context/TaskContext"
 const NAV_ITEMS = [
   { icon: CalendarDays, label: "Today" },
   { icon: CalendarClock, label: "Upcoming" },
+  { icon: Goal, label: "Goals"},
   { icon: Tag, label: "Labels" },
 ];
 
