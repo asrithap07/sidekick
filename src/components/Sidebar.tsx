@@ -22,11 +22,11 @@ import {
 
 import AddTaskModal from "@/components/AddTaskModal"
 import {useTasks} from "@/context/TaskContext"
+import useCreateProject from "@/components/UseCreateProject";
 
 const NAV_ITEMS = [
   { icon: CalendarDays, label: "Today" },
   { icon: CalendarClock, label: "Upcoming" },
-  { icon: Goal, label: "Goals"},
   { icon: Tag, label: "Labels" },
 ];
 
@@ -56,6 +56,11 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
   const [active, setActive] = useState("Today");
   const [isModalOpen, setModalOpen] = useState(false);
   const { addTask } = useTasks();
+
+  const { openModal, modal } = useCreateProject((draft) => {
+    // draft.phases and draft.goal are ready — write to Supabase here
+    console.log("Created:", draft);
+  });
   
 
   return (
@@ -125,7 +130,9 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
             <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium">
               {!collapsed && "Projects"}
             </p>
-            <button className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300">
+            <button 
+              className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300"
+              onClick={openModal}>
               <Plus size={14} />
             </button>
           </div>
@@ -235,7 +242,7 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
                 }}
               />
             )}
-    </aside>
-    
+      {modal}
+    </aside>    
   );
 }

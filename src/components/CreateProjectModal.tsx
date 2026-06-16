@@ -1,0 +1,217 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import StepOutcome from "./steps/StepOutcome";
+import StepClarify from "./steps/StepClarify";
+import StepGenerating from "./steps/StepGenerating";
+import StepReview from "./steps/StepPreview";
+import { generateProjectPlan } from "./GenerateProjectPlan";
+
+export type Step = "outcome" | "clarify" | "generating" | "review";
+
+export interface GeneratedPhase {
+  id: string;
+  name: string;
+  description: string;
+  tasks: GeneratedTask[];
+}
+
+export interface GeneratedTask {
+  id: string;
+  title: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface ProjectDraft {
+  goal: string;
+  description: string;
+  targetDate: string;
+  clarifications: {
+    resume: string;
+    dsa: string;
+    targets: string;
+  };
+  phases: GeneratedPhase[];
+}
+
+interface CreateProjectModalProps {
+  onClose: () => void;
+  onCreated?: (draft: ProjectDraft) => void;
+}
+
+const STEPS: Step[] = ["outcome", "clarify", "generating", "review"];
+
+const STEP_META: Record<Step, { label: string; heading: string; sub: string }> =
+  {
+    outcome: {
+      label: "Step 1 of 4",
+      heading: "What are you trying to achieve?",
+      sub: "Turn your goal into a structured project.",
+    },
+    clarify: {
+      label: "Step 2 of 4",
+      heading: "A few quick questions",
+      sub: "Help the AI build a more accurate plan.",
+    },
+    generating: {
+      label: "Step 3 of 4",
+      heading: "Building your plan",
+      sub: "",
+    },
+    review: {
+      label: "Step 4 of 4",
+      heading: "Review your plan",
+      sub: "Looks good? Create the project to get started.",
+    },
+  };
+
+export default function CreateProjectModal({
+  onClose,
+  onCreated,
+}: CreateProjectModalProps) {
+  const [step, setStep] = useState<Step>("outcome");
+  const [draft, setDraft] = useState<ProjectDraft>({
+    goal: "",
+    description: "",
+    targetDate: "",
+    clarifications: { resume: "", dsa: "", targets: "" },
+    phases: [],
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const stepIndex = STEPS.indexOf(step);
+
+  const goTo = (s: Step) => {
+    setError(null);
+    setStep(s);
+  };
+
+  const handleOutcomeNext = (
+    data: Pick<ProjectDraft, "goal" | "description" | "targetDate">
+  ) => {
+    setDraft((d) => ({ ...d, ...data }));
+    goTo("clarify");
+  };
+
+  const handleClarifyNext = (
+    clarifications: ProjectDraft["clarifications"],
+    skip: boolean
+  ) => {
+    const updated = { ...draft, clarifications: skip ? draft.clarifications : clarifications };
+    setDraft(updated);
+    goTo("generating");
+    runGeneration(updated);
+  };
+
+  const runGeneration = useCallback(async (d: ProjectDraft) => {
+    try {
+      const phases = await generateProjectPlan(d);
+      setDraft((prev) => ({ ...prev, phases }));
+      goTo("review");
+    } catch (e) {
+      setError("Generation failed. Please try again.");
+      goTo("clarify");
+    }
+  }, []);
+
+  const handleCreate = () => {
+    onCreated?.(draft);
+    onClose();
+  };
+
+  const meta = STEP_META[step];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-neutral-900 shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-0">
+          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            New project
+          </span>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
+            aria-label="Close"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path
+                d="M4 4l10 10M14 4L4 14"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="flex gap-1.5 px-6 pt-4">
+          {STEPS.map((s, i) => (
+            <div
+              key={s}
+              className="h-0.5 flex-1 rounded-full transition-all duration-300"
+              style={{
+                background:
+                  i < stepIndex
+                    ? "#6c63ff"
+                    : i === stepIndex
+                    ? "rgba(108,99,255,0.4)"
+                    : "rgba(108,99,255,0.12)",
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Step label + heading */}
+        <div className="px-6 pt-5 pb-1">
+          <p className="text-xs text-neutral-400 dark:text-neutral-500 mb-1 tracking-wide">
+            {meta.label}
+          </p>
+          <h2 className="text-xl font-medium text-neutral-900 dark:text-neutral-100">
+            {meta.heading}
+          </h2>
+          {meta.sub && (
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
+              {meta.sub}
+            </p>
+          )}
+        </div>
+
+        {error && (
+          <div className="mx-6 mt-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-4 py-2.5 text-sm text-red-600 dark:text-red-400">
+            {error}
+          </div>
+        )}
+
+        {/* Step body */}
+        <div className="px-6 pt-4 pb-6">
+          {step === "outcome" && (
+            <StepOutcome
+              initial={draft}
+              onNext={handleOutcomeNext}
+            />
+          )}
+          {step === "clarify" && (
+            <StepClarify
+              initial={draft.clarifications}
+              onNext={handleClarifyNext}
+              onBack={() => goTo("outcome")}
+            />
+          )}
+          {step === "generating" && <StepGenerating />}
+          {step === "review" && (
+            <StepReview
+              draft={draft}
+              onBack={() => goTo("clarify")}
+              onCreate={handleCreate}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
