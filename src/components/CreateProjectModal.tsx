@@ -1,51 +1,34 @@
 "use client";
 
-import { useState, useCallback } from "react";
 import StepOutcome from "./steps/StepOutcome";
 import StepClarify from "./steps/StepClarify";
-import StepGenerating from "./steps/StepGenerating";
-import StepReview from "./steps/StepPreview";
-import { Step, ProjectDraft } from "@/lib/project-creation/creationTypes";
-import { useProjectCreation } from "@/lib/project-creation/useProjectCreation";
-
-/* this file is basically the "brain" of the entire creating project flow */
+import type { Step } from "@/types/creation"
+import { useProjectCreation } from "@/lib/utils/project-creation"
+// The modal is now just a form — 2 steps, no async work.
+// Step 1: What are you trying to achieve? (goal, description, date)
+// Step 2: A few quick questions (clarifications)
+// After step 2 → modal closes, navigation to /projects/new?status=generating
 
 interface CreateProjectModalProps {
   onClose: () => void;
-  onCreated?: (draft: ProjectDraft) => void;
 }
 
-const STEPS: Step[] = ["outcome", "clarify", "generating", "review"];
+const STEPS: Step[] = ["outcome", "clarify"];
 
-const STEP_META: Record<Step, { label: string; heading: string; sub: string }> =
-  {
-    outcome: {
-      label: "Step 1 of 4",
-      heading: "What are you trying to achieve?",
-      sub: "Turn your goal into a structured project.",
-    },
-    clarify: {
-      label: "Step 2 of 4",
-      heading: "A few quick questions",
-      sub: "Help the AI build a more accurate plan.",
-    },
-    generating: {
-      label: "Step 3 of 4",
-      heading: "Building your plan",
-      sub: "",
-    },
-    review: {
-      label: "Step 4 of 4",
-      heading: "Review your plan",
-      sub: "Looks good? Create the project to get started.",
-    },
-  };
+const STEP_META: Record<Step, { label: string; heading: string; sub: string }> = {
+  outcome: {
+    label: "Step 1 of 2",
+    heading: "What are you trying to achieve?",
+    sub: "Turn your goal into a structured project.",
+  },
+  clarify: {
+    label: "Step 2 of 2",
+    heading: "A few quick questions",
+    sub: "Help the AI build a more accurate plan.",
+  },
+};
 
-export default function CreateProjectModal({
-  onClose,
-  onCreated,
-}: CreateProjectModalProps) {
-
+export default function CreateProjectModal({ onClose }: CreateProjectModalProps) {
   const {
     step,
     draft,
@@ -53,8 +36,7 @@ export default function CreateProjectModal({
     goTo,
     handleOutcomeNext,
     handleClarifyNext,
-    handleCreate,
-  } = useProjectCreation(onClose, onCreated)
+  } = useProjectCreation(onClose);
 
   const stepIndex = STEPS.indexOf(step);
   const meta = STEP_META[step];
@@ -86,7 +68,7 @@ export default function CreateProjectModal({
           </button>
         </div>
 
-        {/* Progress bar */}
+        {/* Progress bar — 2 segments now */}
         <div className="flex gap-1.5 px-6 pt-4">
           {STEPS.map((s, i) => (
             <div
@@ -138,14 +120,6 @@ export default function CreateProjectModal({
               initial={draft.clarifications}
               onNext={handleClarifyNext}
               onBack={() => goTo("outcome")}
-            />
-          )}
-          {step === "generating" && <StepGenerating />}
-          {step === "review" && (
-            <StepReview
-              draft={draft}
-              onBack={() => goTo("clarify")}
-              onCreate={handleCreate}
             />
           )}
         </div>

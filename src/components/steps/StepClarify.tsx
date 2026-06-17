@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ProjectDraft
 
- } from "@/lib/project-creation/creationTypes";
+ } from "@/types/creation";
 type Clarifications = ProjectDraft["clarifications"];
 
 interface Props {

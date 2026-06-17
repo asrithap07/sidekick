@@ -1,46 +1,57 @@
-export type Priority = "high" | "medium" | "low"; 
+// Priority lives here canonically and is imported everywhere else.
+// (Previously it was re-typed inline in TaskContext — now there's one source.)
+export type Priority = "high" | "medium" | "low";
 
-export type PhaseStatus = "completed" | "in-progress" | "upcoming" | "locked"; 
+export type PhaseStatus = "completed" | "in-progress" | "upcoming" | "locked";
 
-export interface PhaseTask  {
-     id: string; label: string; done: boolean; tag: string; tagColor: string; priority: Priority; dueLabel: string; 
-    } 
+// PhaseTask is defined in types/task.ts and extended there.
+// We re-export it here so project-related imports stay clean.
+export type { PhaseTask } from "./task";
+
 export interface Phase {
-     number: number; 
-     title: string; 
-     status: PhaseStatus; 
-     progress: number; 
-     tasks: PhaseTask[]; 
-    } 
-export interface Insight { 
-    icon: React.ReactNode; 
-    iconBg: string; 
-    title: string; 
-    body: string; } 
+  number: number;
+  title: string;
+  status: PhaseStatus;
+  progress: number;
+  tasks: import("./task").PhaseTask[];
+}
 
-export interface CoachingNote { 
-    text: string; 
-    color: string; 
-    textColor: string; 
-    age: string; } 
+// Insight.iconName is a string key (e.g. "trending-up") instead of
+// React.ReactNode. The UI layer maps this to an actual icon component.
+// This makes Insight serializable — it can round-trip through JSON
+// and eventually come straight from Supabase.
+export type InsightIconName = "trending-up" | "target" | "lightbulb" | "zap" | "clock";
 
-export interface Attachment { 
-    name: string; 
-    meta: string; }
+export interface Insight {
+  iconName: InsightIconName;
+  title: string;
+  body: string;
+}
+
+// CoachingNote uses a semantic type instead of raw Tailwind class strings.
+// The UI maps type → className. Supabase stores "info", not
+// "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300".
+export type CoachingNoteType = "info" | "success" | "warning";
+
+export interface CoachingNote {
+  type: CoachingNoteType;
+  text: string;
+  age: string;
+}
+
+export interface Attachment {
+  name: string;
+  meta: string;
+}
 
 export interface Project {
   id: string;
-
   title: string;
   description: string;
-
   deadline?: string;
-
   progress: number;
-
   phases: Phase[];
-
   attachments: Attachment[];
-
   insights: Insight[];
+  coaching: CoachingNote[];
 }

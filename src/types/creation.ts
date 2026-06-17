@@ -1,4 +1,4 @@
-export type Step = "outcome" | "clarify" | "generating" | "review";
+export type Step = "outcome" | "clarify";
 
 export interface GeneratedPhase {
   id: string;
@@ -13,6 +13,8 @@ export interface GeneratedTask {
   priority: "high" | "medium" | "low";
 }
 
+// ProjectDraft only holds what the USER typed.
+// The AI output (phases) is kept separate and only merged at save time.
 export interface ProjectDraft {
   goal: string;
   description: string;
@@ -22,5 +24,4 @@ export interface ProjectDraft {
     c2: string;
     c3: string;
   };
-  phases: GeneratedPhase[];
 }

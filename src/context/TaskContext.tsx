@@ -1,128 +1,105 @@
 "use client";
-import React from "react"
-import { createContext, useContext, useState } from "react";
-import { Task } from "@/types/task";
 
-/*
-    context is like a global store for your React app
-    normally data is passsed top-down through props part of the components
-    with context we can put data in a shared container (TaskConteext) and any component wrapped in it can read or update the data directly without props
-*/
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import type { Task } from "@/types/task";
+import { fetchTasks, createTask, updateTask, deleteTask } from "@/lib/api/tasks";
+
+// TaskContext is a shared client-side cache over the tasks API.
+// It does NOT own the data — the API (and eventually Supabase) does.
+//
+// Why context and not per-page fetching?
+// Tasks are shown on Today, Upcoming, Labels, and project pages simultaneously.
+// If each page fetched independently, adding a task on Today wouldn't update
+// Upcoming until a full refresh. Context gives us one source of truth on the
+// client without a heavy state management library.
+//
+// When Supabase is ready: swap the functions in src/lib/api/tasks.ts.
+// Nothing in this file or any consumer component needs to change.
 
 type TaskContextType = {
   tasks: Task[];
-  addTask: (task: {
-    label: string;
-    priority: "high" | "medium" | "low";
-    dueDate?: string;
-    tags: string[];
-    }) => void;
-toggleDone: (id: string) => void;
-  deleteTask: (id: string) => void;
-  finishAll: () => void;
+  loading: boolean;
+  error: string | null;
+  addTask: (task: Omit<Task, "id" | "done">) => Promise<void>;
+  toggleDone: (id: string) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  finishAll: () => Promise<void>;
 };
 
-const INITIAL_TASKS: Task[] = [
-    {
-        id: "1", 
-        label: "Create UI", 
-        priority: "high", 
-        project: "CS Project", 
-        tags: ["career", "coding"],
-        done: false,
-        dueDate: "2026-06-02"
-    },
-    {
-        id: "2",
-        label: "Apply to 2 summer internships",
-        priority: "low",
-        project: null,
-        tags: ["career"],
-        done: false,
-        dueDate: "2026-06-03"
-    },
-    {
-        id: "3",
-        label: "go to the gym",
-        priority: "medium",
-        project: null,
-        tags: ["life"],
-        done: true,
-        dueDate: "2026-06-02"
-    }
- ]
-
- //creats a new context object
-//initially, it has no value, we provide the value in TaskProvider
 const TaskContext = createContext<TaskContextType | null>(null);
 
-//wrapping components with TaskProvider lets them access tasks and update functions
-export function TaskProvider({ children }: { children: React.ReactNode }) { //children is a special prop that represents whatever JSX you put inside a component
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+export function TaskProvider({ children }: { children: React.ReactNode }) {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  //the function takes a task id
-    const toggleDone = (id: string) =>
-        // we are calling setTasks and giving it a function that takes the prev tasks state and calculates a new one from it
-        setTasks((prev) =>
-            //we use map to go through every tasks and if that task id 
-            // matches the curretn one we are toggling, then we return a new object that is toggled as  
-            // otherwise we leave it as the same
-            prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))
-        );
-    
-    //the function deleteTask takes a task id
-    const deleteTask = (id: string) =>
-        //we call setTasks and give it a function that takes the prev tasjs
-        //it returns a list of tasks that ids dont match the id given to deleteTask
-        setTasks((prev) => prev.filter((t) => t.id !== id));
+  // Load tasks once on mount
+  useEffect(() => {
+    fetchTasks()
+      .then(setTasks)
+      .catch(() => setError("Failed to load tasks"))
+      .finally(() => setLoading(false));
+  }, []);
 
-    //take the current tasks and add a new one to the end
-    const addTask = ({label, priority, dueDate, tags}: {label: string; priority: "high" | "medium" | "low"; dueDate?: string; tags?: string[] }) => {
-        //add new task to state -> set tasks to be all the previous tasks along with this new task at the end
-        setTasks((prev) => [
-            //copy all previous tasks
-            ...prev,
-            // create the new task object and use Date.now() to track id so its easier
-            {id: crypto.randomUUID(), label: label, priority: priority, project: null, tags: tags ?? [], done: false, dueDate: dueDate}
-        ])
-        //setNewTask("");
-    };
-    //sets everything to done
-    const finishAll = () => {
-        setTasks((prev) =>
-            //the parentheces around the object tells javascript to reutn this object
-            prev.map((t) =>  ({...t, done: true}))
-        );
+  const addTask = useCallback(async (data: Omit<Task, "id" | "done">) => {
+    const created = await createTask(data);
+    setTasks((prev) => [...prev, created]);
+  }, []);
+
+  const toggleDone = useCallback(async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    // Optimistic update — UI flips immediately, API call confirms
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+    try {
+      await updateTask(id, { done: !task.done });
+    } catch {
+      // Roll back if the API call fails
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: task.done } : t)));
     }
+  }, [tasks]);
+
+  const removeTask = useCallback(async (id: string) => {
+    const snapshot = tasks;
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    try {
+      await deleteTask(id);
+    } catch {
+      setTasks(snapshot);
+    }
+  }, [tasks]);
+
+  const finishAll = useCallback(async () => {
+    const snapshot = tasks;
+    setTasks((prev) => prev.map((t) => ({ ...t, done: true })));
+    try {
+      await Promise.all(
+        tasks.filter((t) => !t.done).map((t) => updateTask(t.id, { done: true }))
+      );
+    } catch {
+      setTasks(snapshot);
+    }
+  }, [tasks]);
 
   return (
-    /*
-        every context you create (TaskContext = createContext()) comes with a Provider
-        the Provider is like a container that wraps other components and makes the context value available to all of them
-    */
-   //anything inside this box can see an use the things I'm giving it
-   //the value prop is what you're giving to the components inside
-   //   here we are passing an object with all our state and functions and any component inside this Provider can grab this object using useContext(TaskContext)
-    <TaskContext.Provider value={{tasks, addTask, toggleDone, deleteTask, finishAll }}>
-      {/* this renders wahtever JSX was inside TaskProvider when you used it */}
+    <TaskContext.Provider
+      value={{
+        tasks,
+        loading,
+        error,
+        addTask,
+        toggleDone,
+        deleteTask: removeTask,
+        finishAll,
+      }}
+    >
       {children}
     </TaskContext.Provider>
   );
 }
 
-{/* 
-    useContext(TaskContext) goes and finds the nearest <TaskContext.Provider> 
-    above me in the component tree and give me its value (the object with tasks, addTask, etc)
-    useTasks returns that value that the provider gives which makes our app a lot simpler
-
-*/}
-
 export function useTasks() {
   const context = useContext(TaskContext);
-
-  if (!context) {
-    throw new Error("useTasks must be used within a TaskProvider");
-  }
-
+  if (!context) throw new Error("useTasks must be used within a TaskProvider");
   return context;
 }

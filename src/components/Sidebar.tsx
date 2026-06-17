@@ -31,9 +31,9 @@ const NAV_ITEMS = [
 ];
 
 const PROJECTS = [
-  { icon: "🏃‍♀️", label: "Run 5K Marathon", slug: "run-5k-marathon"},
-  { icon: "✈️", label: "Japan Trip 2026", slug: "japan-trip-2027"},
-  { icon: "💼", label: "Internship Search", slug: "internship-search"}
+  { icon: "🏃‍♀️", label: "Run 5K Marathon", id: "run-5k-marathon"},
+  { icon: "✈️", label: "Japan Trip 2026", id: "japan-trip-2026"},
+  { icon: "💼", label: "Internship Search", id: "internship-search"}
 ];
 
 type SidebarProps = {
@@ -56,10 +56,7 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
   const [isModalOpen, setModalOpen] = useState(false);
   const { addTask } = useTasks();
 
-  const { openModal, modal } = useCreateProject((draft) => {
-    // draft.phases and draft.goal are ready — write to Supabase here
-    console.log("Created:", draft);
-  });
+  const { openModal, modal } = useCreateProject();
   
 
   return (
@@ -137,9 +134,9 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
           </div>
 
           <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto">
-            {PROJECTS.map(({ icon, label, slug }) => (
+            {PROJECTS.map(({ icon, label, id }) => (
               // <button
-              <Link href={`/projects/${slug}`}
+              <Link href={`/projects/${id}`}
                 key={label}
                 onClick={() => onNavigate(label)}
                 className={`flex items-center ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-2.5 py-2 text-left"
