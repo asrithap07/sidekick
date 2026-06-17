@@ -3,105 +3,34 @@ import React, { useMemo } from "react";
 import { Sparkles, CalendarDays, Clock, Inbox } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
 import TaskItem from "@/components/TaskItem";
+import { groupUpcomingTasks } from "@/lib/task-utils";
 
 type UpcomingProps = {
   onOpenAI: () => void;
 };
 
-// ── helpers ────────────────────────────────────────────────────────────────
-
-function startOfDay(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-function parseDate(dateStr: string): Date | null {
-  if (!dateStr) return null;
-  // Parse YYYY-MM-DD as local date (not UTC) to avoid timezone shifts
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return null;
-  const [y, m, d] = parts.map(Number);
-  if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
-  return new Date(y, m - 1, d);
-}
-
-function formatGroupLabel(date: Date, today: Date, tomorrow: Date): string {
-  const d = startOfDay(date);
-  const t = startOfDay(today);
-  const tm = startOfDay(tomorrow);
-
-  if (d.getTime() === t.getTime()) return "Today";
-  if (d.getTime() === tm.getTime()) return "Tomorrow";
-
-  // Same week → weekday name
-  const diffDays = Math.round((d.getTime() - t.getTime()) / 86_400_000);
-  if (diffDays > 0 && diffDays < 7) {
-    return d.toLocaleDateString("en-US", { weekday: "long" });
-  }
-
-  // Otherwise full date
-  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-}
-
-function isOverdue(date: Date, today: Date): boolean {
-  return startOfDay(date) < startOfDay(today);
-}
-
 // ── component ──────────────────────────────────────────────────────────────
-
-export default function Upcoming({ onOpenAI }: UpcomingProps) {
+  export default function Upcoming({onOpenAI}: UpcomingProps) {
   const { tasks, toggleDone, deleteTask } = useTasks();
+  const {
+    overdueGroup,
+    dateGroups,
+    noDueDate,
+  } = useMemo(
+    () => groupUpcomingTasks(tasks),
+    [tasks]
+  );
 
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const totalUpcoming =
+    dateGroups.reduce(
+      (n, g) => n + g.tasks.length,
+      0
+    );
 
-  // Split tasks into: overdue, upcoming (grouped by date), no-date
-  const { overdueGroup, dateGroups, noDueDate } = useMemo(() => {
-    const overdue: typeof tasks = [];
-    const dated: typeof tasks = [];
-    const noDue: typeof tasks = [];
-
-    tasks.forEach((t) => {
-      if (!t.dueDate) {
-        noDue.push(t);
-        return;
-      }
-      const d = parseDate(t.dueDate);
-      if (!d) { noDue.push(t); return; }
-      if (isOverdue(d, today)) overdue.push(t);
-      else dated.push(t);
-    });
-
-    // Sort overdue: most recently overdue first
-    overdue.sort((a, b) => {
-      const da = parseDate(a.dueDate!)?.getTime() ?? 0;
-      const db = parseDate(b.dueDate!)?.getTime() ?? 0;
-      return db - da;
-    });
-
-    // Group upcoming by date string (YYYY-MM-DD key for stable sorting)
-    const groups: Map<string, typeof tasks> = new Map();
-    dated.forEach((t) => {
-      const d = parseDate(t.dueDate!)!;
-      const key = startOfDay(d).toISOString();
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(t);
-    });
-
-    // Sort groups chronologically
-    const sortedGroups = Array.from(groups.entries())
-      .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-      .map(([isoKey, groupTasks]) => ({
-        date: new Date(isoKey),
-        label: formatGroupLabel(new Date(isoKey), today, tomorrow),
-        tasks: groupTasks,
-      }));
-
-    return { overdueGroup: overdue, dateGroups: sortedGroups, noDueDate: noDue };
-  }, [tasks]);
-
-  const totalUpcoming = dateGroups.reduce((n, g) => n + g.tasks.length, 0);
-  const isEmpty = overdueGroup.length === 0 && totalUpcoming === 0 && noDueDate.length === 0;
+  const isEmpty =
+    overdueGroup.length === 0 &&
+    totalUpcoming === 0 &&
+    noDueDate.length === 0;
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">

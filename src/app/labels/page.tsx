@@ -4,53 +4,28 @@ import React, { useState, useMemo } from "react";
 import { Tag, X } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
 import TaskItem from "@/components/TaskItem";
+import { getAllLabels, getLabelCounts, filterTasksByLabel, getLabelStyle } from "@/lib/label-utils";
 
-const TAG_COLORS = [
-  { text: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200", activeBg: "bg-yellow-100" },
-  { text: "text-lime-600",   bg: "bg-lime-50",   border: "border-lime-200",   activeBg: "bg-lime-100"   },
-  { text: "text-sky-500",    bg: "bg-sky-50",    border: "border-sky-200",    activeBg: "bg-sky-100"    },
-  { text: "text-violet-500", bg: "bg-violet-50", border: "border-violet-200", activeBg: "bg-violet-100" },
-  { text: "text-pink-500",   bg: "bg-pink-50",   border: "border-pink-200",   activeBg: "bg-pink-100"   },
-  { text: "text-teal-500",   bg: "bg-teal-50",   border: "border-teal-200",   activeBg: "bg-teal-100"   },
-  { text: "text-orange-500", bg: "bg-orange-50", border: "border-orange-200", activeBg: "bg-orange-100" },
-];
-
-function getLabelStyle(tag: string) {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) hash += tag.charCodeAt(i);
-  return TAG_COLORS[hash % TAG_COLORS.length];
-}
 
 export default function LabelsView() {
   const { tasks, toggleDone, deleteTask } = useTasks();
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
 
   // Collect all unique labels across all tasks
-  const allLabels = useMemo(() => {
-    const seen = new Set<string>();
-    tasks.forEach((t) => (t.tags ?? []).forEach((tag) => seen.add(tag)));
-    return Array.from(seen).sort();
-  }, [tasks]);
+  const allLabels = useMemo(
+  () => getAllLabels(tasks),
+  [tasks]
+);
 
-  // Count tasks per label
-  const labelCounts = useMemo(() => {
-    const counts: Record<string,number> = {};
-    //outer loop: go through every task
-    tasks.forEach((t) =>
-      //inner loop: go through each tag in a task, ?? [] says if tags is null/undefined, just use an empty array
-      (t.tags ?? []).forEach((tag) => {
-        //add 1 to counts[tag], if null, make counts[tag] = 1
-        counts[tag] = (counts[tag] ?? 0) + 1;
-      })
-    );
-    return counts;
-  }, [tasks]);
+const labelCounts = useMemo(
+  () => getLabelCounts(tasks),
+  [tasks]
+);
 
-  // Filter tasks by selected label, or show all tagged tasks
-  const filteredTasks = useMemo(() => {
-    if (!selectedLabel) return tasks.filter((t) => t.tags && t.tags.length > 0);
-    return tasks.filter((t) => t.tags?.includes(selectedLabel));
-  }, [tasks, selectedLabel]);
+const filteredTasks = useMemo(
+  () => filterTasksByLabel(tasks, selectedLabel),
+  [tasks, selectedLabel]
+);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">

@@ -5,23 +5,11 @@ import {
   CheckCircle2, Target, Lightbulb, ChevronRight, RotateCcw,
 } from "lucide-react";
 
+import { Task } from "@/types/task";
+import { Stats } from "@/types/stats";
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
-interface Task {
-  id: string;
-  label: string;
-  done: boolean;
-  priority?: "high" | "medium" | "low";
-  dueDate?: string;
-  tags?: string[];
-}
-
-interface Stats {
-  total: number;
-  done: number;
-  overdue: number;
-  pct: number;
-}
 
 interface Message {
   role: "user" | "assistant";

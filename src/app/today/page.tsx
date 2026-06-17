@@ -10,6 +10,9 @@ import { Task } from "@/types/task";
 import TaskItem from "@/components/TaskItem";
 import AddTaskModal from "@/components/AddTaskModal";
 import AIAssistant from "@/components/AIAssistant";
+import { getTaskStats } from "@/lib/task-utils";
+import {getTaskInsights} from "@/lib/task-insights"
+import { getGreeting } from "@/lib/date-utils";
 
 type TaskBoardProps = {
   onOpenAI: () => void;
@@ -19,47 +22,23 @@ type TaskBoardProps = {
 const STREAK = 7;
 const MOMENTUM = "+15%";
 
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
-}
+
 
 export default function TaskBoard({ onOpenAI }: TaskBoardProps) {
   const [isModalOpen, setModalOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const { tasks, addTask, toggleDone, deleteTask, finishAll } = useTasks();
 
-  const stats = useMemo(() => {
-    const total = tasks.length;
-    const done = tasks.filter((t) => t.done).length;
-    const today = new Date();
-    const overdue = tasks.filter((t) => {
-      if (t.done || !t.dueDate) return false;
-      const parts = t.dueDate.split("-").map(Number);
-      if (parts.length !== 3) return false;
-      const d = new Date(parts[0], parts[1] - 1, parts[2]);
-      return d < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    }).length;
-    const pct = total === 0 ? 0 : Math.round((done / total) * 100);
-    return { total, done, overdue, pct };
-  }, [tasks]);
 
-  const insights = useMemo(() => {
-    const msgs: { icon: React.ReactNode; text: string; color: string }[] = [];
-    if (stats.overdue > 0)
-      msgs.push({ icon: <Clock size={13} />, text: `${stats.overdue} overdue task${stats.overdue > 1 ? "s" : ""} need attention`, color: "text-red-500" });
-    const highPriority = tasks.filter((t) => !t.done && t.priority === "high");
-    if (highPriority.length > 0)
-      msgs.push({ icon: <Zap size={13} />, text: `${highPriority.length} high-priority task${highPriority.length > 1 ? "s" : ""} left today`, color: "text-amber-500" });
-    if (stats.pct >= 50 && stats.pct < 100)
-      msgs.push({ icon: <TrendingUp size={13} />, text: `You're ${stats.pct}% done — strong pace`, color: "text-green-500" });
-    if (stats.pct === 100)
-      msgs.push({ icon: <CheckCircle2 size={13} />, text: "All done! Phenomenal day.", color: "text-indigo-500" });
-    return msgs.slice(0, 3);
-  }, [tasks, stats]);
 
+  const stats = useMemo(
+  () => getTaskStats(tasks),
+  [tasks]);
+
+  const insights = useMemo(
+  () => getTaskInsights(tasks, stats),
+  [tasks, stats]);
+  
   return (
     <div className="flex h-full gap-3 overflow-hidden">
       {/* ── Main board ── */}
