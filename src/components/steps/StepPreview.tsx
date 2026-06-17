@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ProjectDraft, GeneratedPhase } from "../CreateProjectModal";
-
+import type { ProjectDraft, GeneratedPhase} from "@/lib/project-creation/creationTypes";
 interface Props {
   draft: ProjectDraft;
   onBack: () => void;

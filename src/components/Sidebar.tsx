@@ -31,7 +31,7 @@ const NAV_ITEMS = [
 ];
 
 const PROJECTS = [
-  { icon: "🧑‍💻", label: "Code Project", slug: "code-project"},
+  { icon: "🏃‍♀️", label: "Run 5K Marathon", slug: "run-5k-marathon"},
   { icon: "✈️", label: "Japan Trip 2026", slug: "japan-trip-2027"},
   { icon: "💼", label: "Internship Search", slug: "internship-search"}
 ];
@@ -53,7 +53,6 @@ function createSlug(name: string) {
 
 export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, onNavigate}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [active, setActive] = useState("Today");
   const [isModalOpen, setModalOpen] = useState(false);
   const { addTask } = useTasks();
 

@@ -1,6 +1,6 @@
-import type { ProjectDraft, GeneratedPhase } from "./CreateProjectModal";
+import type { ProjectDraft, GeneratedPhase } from "../project-creation/creationTypes"
 
-const MOCK_DELAY_MS = 3200;
+//replace this with actual ai plans later on
 
 const MOCK_PLANS: Record<string, GeneratedPhase[]> = {
   default: [
@@ -55,6 +55,8 @@ const MOCK_PLANS: Record<string, GeneratedPhase[]> = {
     },
   ],
 };
+
+const MOCK_DELAY_MS = 3000
 
 export async function generateProjectPlan(
   draft: ProjectDraft

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ProjectDraft } from "../CreateProjectModal";
+import type { ProjectDraft } from "../../lib/project-creation/creationTypes";
 
 interface Props {
   initial: Pick<ProjectDraft, "goal" | "description" | "targetDate">;

@@ -2,8 +2,7 @@
 
 import { useState, useCallback } from "react";
 import CreateProjectModal from "./CreateProjectModal";
-import type { ProjectDraft } from "./CreateProjectModal";
-
+import type { ProjectDraft } from "@/lib/project-creation/creationTypes";
 export default function useCreateProject(onCreated?: (draft: ProjectDraft) => void) {
   const [open, setOpen] = useState(false);
 

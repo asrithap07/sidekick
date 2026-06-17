@@ -10,9 +10,9 @@ import { Task } from "@/types/task";
 import TaskItem from "@/components/TaskItem";
 import AddTaskModal from "@/components/AddTaskModal";
 import AIAssistant from "@/components/AIAssistant";
-import { getTaskStats } from "@/lib/task-utils";
-import {getTaskInsights} from "@/lib/task-insights"
-import { getGreeting } from "@/lib/date-utils";
+import { getTaskStats } from "@/lib/utils/task-utils";
+import {getTaskInsights} from "@/lib/utils/task-insights"
+import { getGreeting } from "@/lib/utils/date-utils";
 
 type TaskBoardProps = {
   onOpenAI: () => void;

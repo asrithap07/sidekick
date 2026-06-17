@@ -5,34 +5,10 @@ import StepOutcome from "./steps/StepOutcome";
 import StepClarify from "./steps/StepClarify";
 import StepGenerating from "./steps/StepGenerating";
 import StepReview from "./steps/StepPreview";
-import { generateProjectPlan } from "./GenerateProjectPlan";
+import { Step, ProjectDraft } from "@/lib/project-creation/creationTypes";
+import { useProjectCreation } from "@/lib/project-creation/useProjectCreation";
 
-export type Step = "outcome" | "clarify" | "generating" | "review";
-
-export interface GeneratedPhase {
-  id: string;
-  name: string;
-  description: string;
-  tasks: GeneratedTask[];
-}
-
-export interface GeneratedTask {
-  id: string;
-  title: string;
-  priority: "high" | "medium" | "low";
-}
-
-export interface ProjectDraft {
-  goal: string;
-  description: string;
-  targetDate: string;
-  clarifications: {
-    resume: string;
-    dsa: string;
-    targets: string;
-  };
-  phases: GeneratedPhase[];
-}
+/* this file is basically the "brain" of the entire creating project flow */
 
 interface CreateProjectModalProps {
   onClose: () => void;
@@ -69,56 +45,18 @@ export default function CreateProjectModal({
   onClose,
   onCreated,
 }: CreateProjectModalProps) {
-  const [step, setStep] = useState<Step>("outcome");
-  const [draft, setDraft] = useState<ProjectDraft>({
-    goal: "",
-    description: "",
-    targetDate: "",
-    clarifications: { resume: "", dsa: "", targets: "" },
-    phases: [],
-  });
-  const [error, setError] = useState<string | null>(null);
+
+  const {
+    step,
+    draft,
+    error,
+    goTo,
+    handleOutcomeNext,
+    handleClarifyNext,
+    handleCreate,
+  } = useProjectCreation(onClose, onCreated)
 
   const stepIndex = STEPS.indexOf(step);
-
-  const goTo = (s: Step) => {
-    setError(null);
-    setStep(s);
-  };
-
-  const handleOutcomeNext = (
-    data: Pick<ProjectDraft, "goal" | "description" | "targetDate">
-  ) => {
-    setDraft((d) => ({ ...d, ...data }));
-    goTo("clarify");
-  };
-
-  const handleClarifyNext = (
-    clarifications: ProjectDraft["clarifications"],
-    skip: boolean
-  ) => {
-    const updated = { ...draft, clarifications: skip ? draft.clarifications : clarifications };
-    setDraft(updated);
-    goTo("generating");
-    runGeneration(updated);
-  };
-
-  const runGeneration = useCallback(async (d: ProjectDraft) => {
-    try {
-      const phases = await generateProjectPlan(d);
-      setDraft((prev) => ({ ...prev, phases }));
-      goTo("review");
-    } catch (e) {
-      setError("Generation failed. Please try again.");
-      goTo("clarify");
-    }
-  }, []);
-
-  const handleCreate = () => {
-    onCreated?.(draft);
-    onClose();
-  };
-
   const meta = STEP_META[step];
 
   return (

@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Tag, X } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
 import TaskItem from "@/components/TaskItem";
-import { getAllLabels, getLabelCounts, filterTasksByLabel, getLabelStyle } from "@/lib/label-utils";
+import { getAllLabels, getLabelCounts, filterTasksByLabel, getLabelStyle } from "@/lib/utils/label-utils";
 
 
 export default function LabelsView() {

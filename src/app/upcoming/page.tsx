@@ -3,7 +3,7 @@ import React, { useMemo } from "react";
 import { Sparkles, CalendarDays, Clock, Inbox } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
 import TaskItem from "@/components/TaskItem";
-import { groupUpcomingTasks } from "@/lib/task-utils";
+import { groupUpcomingTasks } from "@/lib/utils/task-utils";
 
 type UpcomingProps = {
   onOpenAI: () => void;

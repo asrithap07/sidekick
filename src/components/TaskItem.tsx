@@ -2,8 +2,9 @@
 
 import { Trash2, CalendarDays } from "lucide-react";
 import React from "react";
-import type { Task } from "@/context/TaskContext";
-
+import { Task
+  
+ } from "@/types/task";
 //design system for the priorities
 const PRIORITY_STYLES = {
   high: {

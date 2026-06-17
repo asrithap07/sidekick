@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { ProjectDraft } from "../CreateProjectModal";
+import type { ProjectDraft
 
+ } from "@/lib/project-creation/creationTypes";
 type Clarifications = ProjectDraft["clarifications"];
 
 interface Props {
@@ -13,17 +14,17 @@ interface Props {
 
 const QUESTIONS: { key: keyof Clarifications; question: string; placeholder: string }[] = [
   {
-    key: "resume",
+    key: "c1",
     question: "Do you already have a resume?",
     placeholder: "Yes / No / In progress…",
   },
   {
-    key: "dsa",
+    key: "c2",
     question: "How comfortable are you with DSA / Leetcode?",
     placeholder: "Beginner · Some experience · Comfortable…",
   },
   {
-    key: "targets",
+    key: "c3",
     question: "Are you targeting big tech only, or open to mid-size?",
     placeholder: "Big tech only · Open to all sizes…",
   },

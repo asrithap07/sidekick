@@ -1298,7 +1298,7 @@ export default function Upcoming({ onOpenAI }: UpcomingProps) {
 <file path="src/types/task.ts">
 export interface Task {
   id: string;
-  label: string;
+  label: string;CGenU
   done: boolean;
   priority: "high" | "medium" | "low";
   project: string | null;
