@@ -82,3 +82,13 @@ export async function getProject(id: string): Promise<Project> {
   if (!res.ok) throw new Error(`Failed to fetch project ${id}`);
   return res.json();
 }
+
+export async function saveProject(id: string, project: Project): Promise<Project> {
+  const res = await fetch(`/api/projects/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(project),
+  });
+  if (!res.ok) throw new Error("Failed to save project");
+  return res.json();
+}

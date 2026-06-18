@@ -15,7 +15,6 @@ export function draftToProject(draft: ProjectDraft, phases: GeneratedPhase[]): P
     status: i === 0 ? "in-progress" : "upcoming",
     progress: 0,
     tasks: gPhase.tasks.map((gTask) => ({
-      // Base Task fields
       id: gTask.id,
       label: gTask.title,
       done: false,
@@ -23,15 +22,12 @@ export function draftToProject(draft: ProjectDraft, phases: GeneratedPhase[]): P
       project: draft.goal, // will be replaced with real project ID post-Supabase
       tags: [],
       dueDate: undefined,
-      // PhaseTask display fields — filled in by user or future AI features
-      tag: "",
-      tagColor: "",
-      dueLabel: "",
     })),
   }));
 
   return {
     id: crypto.randomUUID(),
+    icon: "🎯",
     title: draft.goal,
     description: draft.description,
     deadline: draft.targetDate || undefined,

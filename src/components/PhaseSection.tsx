@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckCircle2, Circle, Lock, ChevronDown, ChevronUp, Plus, CalendarDays } from "lucide-react";
 import type { Phase, Priority } from "@/types/project";
+import { getTagDisplay, getDueDateLabel } from "@/lib/utils/task-display-utils";
 
 // Shared by both /projects/new and /projects/[projectId].
 // Previously duplicated in both files — now lives here.
@@ -112,16 +113,19 @@ export function PhaseSection({ phase, checkedTasks, onToggleTask, showTags = fal
                 >
                   {task.label}
                 </span>
-                {showTags && task.tag && (
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${task.tagColor}`}>
-                    {task.tag}
-                  </span>
-                )}
+                {showTags && getTagDisplay(task.tags) && (() => {
+                  const display = getTagDisplay(task.tags)!;
+                  return (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${display.tagColor}`}>
+                      {display.tag}
+                    </span>
+                  );
+                })()}
                 <PriorityDot priority={task.priority} />
-                {showTags && task.dueLabel && (
+                {showTags && getDueDateLabel(task.dueDate) && (
                   <span className="flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500 shrink-0">
                     <CalendarDays size={11} />
-                    {task.dueLabel}
+                    {getDueDateLabel(task.dueDate)}
                   </span>
                 )}
               </div>

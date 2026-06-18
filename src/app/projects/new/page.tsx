@@ -15,7 +15,7 @@ import { Sparkles, ChevronRight } from "lucide-react";
 
 import StepGenerating from "@/components/steps/StepGenerating";
 import { PhaseSection } from "@/components/PhaseSection";
-import { generateProjectPlan } from "@/lib/api/projects";
+import { generateProjectPlan, saveProject } from "@/lib/api/projects";
 import { draftToProject } from "@/lib/utils/project-utils";
 import type { Project } from "@/types/project";
 import type { ProjectDraft } from "@/types/creation";
@@ -54,12 +54,15 @@ export default function NewProjectPage() {
         const phases = await generateProjectPlan(mockDraft);
         const newProject = draftToProject(mockDraft, phases);
 
+        // Save the generated project to the mock store so the project page can find it
+        if (projectId) {
+          await saveProject(projectId, newProject);
+        }
+
         setProject(newProject);
         setStatus("ready");
 
-        // Replace the URL so the user lands on the permanent project page.
-        // TODO (Supabase): INSERT newProject into DB before this redirect,
-        // and use the real ID returned from createProject() in the modal.
+        // Navigate to the permanent project page
         if (projectId) {
           router.replace(`/projects/${projectId}`);
         }

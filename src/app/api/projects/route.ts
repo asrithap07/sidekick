@@ -1,20 +1,27 @@
 import { NextResponse } from "next/server";
-import { MOCK_PROJECTS } from "@/lib/mock/projects";
+import { getAllProjects } from "@/lib/mock/projects";
+import type { ProjectDraft } from "@/types/creation";
 
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
+// POST /api/projects — create a new project draft
+// Returns a mock ID. When Supabase is connected, this will INSERT into the DB.
+export async function POST(request: Request) {
+  try {
+    const body: ProjectDraft = await request.json();
+    console.log("CREATE PROJECT DRAFT:", body);
 
-  console.log("PARAM ID:", id);
-  console.log("REQUEST URL:", request.url);
+    // Mock: return a stable-ish ID based on the goal name so navigation works
+    const id = `mock-${Date.now()}`;
 
-  const project = MOCK_PROJECTS.find((p) => p.id === id);
-
-  if (!project) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ id }, { status: 201 });
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
   }
+}
 
-  return NextResponse.json(project);
+// GET /api/projects — list all projects (for sidebar etc.)
+export async function GET() {
+  return NextResponse.json(getAllProjects());
 }

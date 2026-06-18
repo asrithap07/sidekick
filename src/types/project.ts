@@ -47,6 +47,7 @@ export interface Attachment {
 export interface Project {
   id: string;
   title: string;
+  icon: string;
   description: string;
   deadline?: string;
   progress: number;

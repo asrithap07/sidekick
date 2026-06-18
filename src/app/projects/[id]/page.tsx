@@ -11,6 +11,7 @@ import {
 import { PhaseSection } from "@/components/PhaseSection";
 import { InsightIcon, COACHING_STYLE } from "@/lib/utils/insight-icon";
 import { getProject } from "@/lib/api/projects";
+import { getTagDisplay, getDueDateLabel } from "@/lib/utils/task-display-utils";
 import type { Project } from "@/types/project";
 
 export default function ProjectPage() {
@@ -61,7 +62,11 @@ const { id } = useParams<{ id: string }>();
 
   const todayTasks = project.phases
     .flatMap((p) => p.tasks)
-    .filter((t) => !t.done && ["Today", "Tomorrow"].includes(t.dueDate));
+    .filter((t) => {
+      if (t.done || !t.dueDate) return false;
+      const label = getDueDateLabel(t.dueDate);
+      return label === "Today" || label === "Tomorrow";
+    });
 
   return (
     <div className="flex h-full gap-3 overflow-hidden">
@@ -96,7 +101,7 @@ const { id } = useParams<{ id: string }>();
           {/* Project title */}
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xl">💼</span>
+              <span className="text-xl">{project.icon}</span>
               <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{project.title}</h1>
               <button className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400">
                 <Pencil size={13} />
@@ -209,6 +214,7 @@ const { id } = useParams<{ id: string }>();
                   <div className="flex flex-col gap-1">
                     {todayTasks.map((task) => {
                       const isDone = checkedTasks.has(task.id);
+                      const tagDisplay = getTagDisplay(task.tags);
                       return (
                         <div key={task.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                           <button onClick={() => toggleTask(task.id)} className="shrink-0">
@@ -217,8 +223,8 @@ const { id } = useParams<{ id: string }>();
                           <span className={`flex-1 text-sm truncate ${isDone ? "line-through text-gray-300 dark:text-gray-600" : "text-gray-700 dark:text-gray-200"}`}>
                             {task.label}
                           </span>
-                          {task.tags && (
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${task.tagColor}`}>{task.tag}</span>
+                          {tagDisplay && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${tagDisplay.tagColor}`}>{tagDisplay.tag}</span>
                           )}
                         </div>
                       );
@@ -226,6 +232,18 @@ const { id } = useParams<{ id: string }>();
                   </div>
                 </div>
               )}
+
+              {/* Current phase with task list */}
+              {project.phases.filter((p) => p.status === "in-progress").map((phase) => (
+                <div key={phase.number} className="mt-4">
+                  <PhaseSection
+                    phase={phase}
+                    checkedTasks={checkedTasks}
+                    onToggleTask={toggleTask}
+                    showTags
+                  />
+                </div>
+              ))}
             </>
           )}
 
