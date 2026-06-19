@@ -1,0 +1,101 @@
+
+---
+
+## The Mental Model First
+
+This app has **two completely separate systems** that just happen to live in the same codebase:
+
+1. **Tasks** — standalone to-dos (Today, Upcoming, Labels pages)
+2. **Projects** — AI-generated multi-phase plans with their own tasks inside them
+
+They barely talk to each other. A project's tasks are stored inside the project object. The standalone tasks in TaskContext are a different thing entirely.
+
+---
+
+## How "Projects" Works End to End
+
+### The types — understand these first before anything else
+
+There are two worlds of types and a conversion function between them.
+
+**The "creation world" (`src/types/creation.ts`)** — temporary, only exists during the modal flow:
+- `ProjectDraft` — what the user typed (goal, description, date, 3 clarifying answers)
+- `GeneratedPhase` / `GeneratedTask` — what the AI spits back (simplified, no `done`, no `dueDate`)
+
+**The "app world" (`src/types/project.ts` + `src/types/task.ts`)** — permanent, what gets stored:
+- `Project` — the full thing with phases, insights, attachments, coaching notes
+- `Phase` — one step of the project with status, progress, and tasks
+- `PhaseTask` — a task that belongs to a phase (extends the base `Task` type)
+
+**The conversion function** is `draftToProject()` in `src/lib/utils/project-utils.ts`. It takes a `ProjectDraft` + `GeneratedPhase[]` and produces a real `Project`. First phase becomes `"in-progress"`, rest become `"upcoming"`, all tasks start as `done: false`. This is the exact moment the temporary creation data becomes a permanent project.
+
+---
+
+## The Fake Database
+
+`src/lib/mock/projects.ts` is your entire database right now. It's just two JS arrays:
+
+- `STATIC_PROJECTS` — the two hand-written projects (Internship Search, Japan Trip) that always exist
+- `dynamicProjects` — an empty array that gets projects pushed into it during the app session
+
+It exports three functions: `getProjectById`, `getAllProjects`, `addProject`. Those are the only three things the API routes ever call. When Supabase comes, you delete this file and swap those three functions for DB queries. Nothing else changes.
+
+**Critical thing to know:** `dynamicProjects` is just a variable in memory. Every time the server restarts it goes back to `[]`. New projects you create only survive until you refresh.
+
+---
+
+## The API Routes
+
+`src/app/api/` — these run **on the server only**, never in the browser. They're the wall between the browser and the mock store.
+
+**`POST /api/projects`** — called when the modal finishes. Receives the draft, generates a `mock-<timestamp>` ID, returns `{ id }`. It does NOT save the draft content anywhere. Just hands back an ID.
+
+**`GET /api/projects/[id]`** — called when any project page loads. Calls `getProjectById(id)`. Returns the project or 404. Right now this 404s for newly created projects because of the navigation bug — the page hits this endpoint before the project has been saved.
+
+**`PUT /api/projects/[id]`** — called after generation is complete. Receives the full generated `Project` object, stamps the URL's ID onto it, calls `addProject()`. This is the moment a new project actually becomes findable.
+
+**`GET /api/projects`** — returns all projects, used by the sidebar.
+
+---
+
+## The Client API Layer
+
+`src/lib/api/projects.ts` — these run **in the browser**. They're just `fetch()` wrappers with proper TypeScript types. There's no logic here, just HTTP calls to the routes above.
+
+The one exception is `generateProjectPlan()` — it doesn't call an API route yet. It waits 3 seconds (so the animation plays) then returns hardcoded `MOCK_PHASES`. The TODO comment says swap this for a real call to `/api/ai` which would hit Anthropic. That's where the actual AI integration goes.
+
+---
+
+## The Creation Flow Step by Step
+
+1. User opens modal → `useCreateProject` hook in `UseCreateProject.tsx` just controls open/closed state. Dead simple.
+
+2. Modal renders via `CreateProjectModal.tsx` — this file is purely visual. The progress bar, the heading, the close button. It imports `useProjectCreation` for all actual logic.
+
+3. `useProjectCreation` in `src/lib/utils/project-creation.ts` is the brain. It holds the current step, the accumulating draft, and the submit logic. `handleOutcomeNext` just saves step 1 data and moves to step 2. `handleClarifyNext` is where it actually does work: POSTs to the API, gets the ID back, calls `onClose()`, then navigates.
+
+4. **The navigation line is the bug.** It currently does `router.push('/projects/${id}?status=generating')` which sends you to the permanent project page at `/projects/[id]`. That page immediately tries to `GET /api/projects/mock-xxx` — but nothing has been saved there yet. Should be `router.push('/projects/new?status=generating&id=${id}')`.
+
+5. `src/app/projects/new/page.tsx` is the generating page. It reads `?status=generating` and `?id=` from the URL. The `useEffect` runs once on mount: calls `generateProjectPlan` (3 second fake wait), calls `draftToProject` to convert the result, calls `saveProject` (the PUT route), then `router.replace` to the permanent page. While all this happens it shows `<StepGenerating />` which is just the animation component.
+
+6. `src/app/projects/[id]/page.tsx` is the permanent page. On mount it calls `getProject(id)` and renders whatever comes back. Four tabs: Overview, Tasks, Insights, Files.
+
+---
+
+## The Tasks System (separate thing)
+
+`src/context/TaskContext.tsx` — React Context that holds all standalone tasks for the whole app. Fetches from `/api/tasks` once when the app loads, keeps a local copy. Today/Upcoming/Labels all read from this same context so they stay in sync. The optimistic update pattern means: flip the state immediately in the browser, then call the API. If the API fails, roll it back.
+
+This has nothing to do with project phase tasks. Project tasks live inside `project.phases[n].tasks` and are fetched as part of the project. They're a separate thing.
+
+---
+
+## The lib/utils Files
+
+These are pure helper functions — no fetch, no React, just data transformations:
+
+- `project-utils.ts` — just `draftToProject()`, the conversion function
+- `task-display-utils.ts` — given a task's data, what tag color/label should show in the UI
+- `date-utils.ts` — is this date today? tomorrow? overdue?
+- `insight-icon.tsx` — maps string keys like `"trending-up"` to actual Lucide icon components. Icons are stored as strings so they can be serialized to JSON/Supabase, then swapped for real components at render time
+- `label-utils.ts` — helpers for the Labels page, grouping tasks by tag

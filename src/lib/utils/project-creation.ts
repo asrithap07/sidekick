@@ -53,7 +53,7 @@ export function useProjectCreation(onClose: () => void) {
       // POST to API → get real ID back (mock-123 today, Supabase UUID tomorrow)
       const { id } = await createProject(finalDraft);
       onClose();
-      router.push(`/projects/${id}?status=generating`);
+      router.push(`/projects/new?status=generating&id=${id}`);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
