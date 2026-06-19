@@ -8,6 +8,8 @@ export type PhaseStatus = "completed" | "in-progress" | "upcoming" | "locked";
 // We re-export it here so project-related imports stay clean.
 export type { PhaseTask } from "./task";
 
+//this is onestep of the project with status, progress, and tasks
+
 export interface Phase {
   number: number;
   title: string;
@@ -43,6 +45,8 @@ export interface Attachment {
   name: string;
   meta: string;
 }
+
+//this object is whats actually getting stored in our app, its the full thing with phases, insights, attachments ,and coachign notes
 
 export interface Project {
   id: string;

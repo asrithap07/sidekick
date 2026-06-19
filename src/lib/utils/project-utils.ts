@@ -1,27 +1,27 @@
 import type { ProjectDraft, GeneratedPhase } from "@/types/creation";
 import type { Project, Phase } from "@/types/project";
 
-// This is the one place where a ProjectDraft + AI-generated phases
-// get translated into a real Project object ready to be saved to Supabase.
-//
-// Think of it as the border crossing between the creation flow and
-// the rest of the app. Everything on the left is temporary; everything
-// on the right is persistent.
+/*
+  draftToProject takes a ProjectDraft + GeneratedPhase[] and produces a realProject.
+  Its like the translation function bewtween the creation flow and the app view for projects
+*/
 
 export function draftToProject(draft: ProjectDraft, phases: GeneratedPhase[]): Project {
   const mappedPhases: Phase[] = phases.map((gPhase, i) => ({
     number: i + 1,
     title: gPhase.name,
+    //the first phase becomes in-progress and rest become upcoming
     status: i === 0 ? "in-progress" : "upcoming",
     progress: 0,
     tasks: gPhase.tasks.map((gTask) => ({
       id: gTask.id,
       label: gTask.title,
+      //all tasks start as not done
       done: false,
       priority: gTask.priority,
       project: draft.goal, // will be replaced with real project ID post-Supabase
       tags: [],
-      dueDate: undefined,
+      dueDate: gTask.suggestedDueDate,
     })),
   }));
 

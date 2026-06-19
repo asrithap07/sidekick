@@ -7,9 +7,10 @@ import {
 
 import { Task } from "@/types/task";
 import { Stats } from "@/types/stats";
+import type { PageContext } from "@/context/AIAssistantContext";
+import { InsightIcon, COACHING_STYLE } from "@/lib/utils/insight-icon";
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
 
 interface Message {
   role: "user" | "assistant";
@@ -18,23 +19,39 @@ interface Message {
 
 interface AIAssistantProps {
   onClose: () => void;
-  tasks: Task[];
-  stats: Stats;
-  streak: number;
+  pageContext: PageContext;
 }
 
 // ── Suggestion chips shown before first message ────────────────────────────
 
-const SUGGESTIONS = [
+const TODAY_SUGGESTIONS = [
   "What should I focus on first?",
   "Help me plan my day",
   "Why am I falling behind?",
   "Break down my hardest task",
 ];
 
-// ── Insight cards derived from task data ──────────────────────────────────
+const PROJECT_SUGGESTIONS = [
+  "What should I work on next?",
+  "Am I on track with this project?",
+  "How do I break down the hardest phase?",
+  "Give me tips to stay motivated",
+];
 
-function buildInsights(tasks: Task[], stats: Stats) {
+const UPCOMING_SUGGESTIONS = [
+  "What's coming up that I should prep for?",
+  "Help me prioritize my week",
+  "Which tasks should I reschedule?",
+];
+
+const GENERIC_SUGGESTIONS = [
+  "Help me get started",
+  "What can you help me with?",
+];
+
+// ── Insight cards derived from context ──────────────────────────────────
+
+function TodayInsights({ tasks, stats, streak }: { tasks: Task[]; stats: Stats; streak: number }) {
   const insights: { icon: React.ReactNode; iconBg: string; title: string; body: string }[] = [];
 
   const highPriority = tasks.filter((t) => !t.done && t.priority === "high");
@@ -74,7 +91,106 @@ function buildInsights(tasks: Task[], stats: Stats) {
     });
   }
 
-  return insights;
+  return (
+    <>
+      <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3">
+        Today's Insights
+      </p>
+      <div className="flex flex-col gap-2 mb-5">
+        {insights.map((ins, i) => (
+          <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ins.iconBg}`}>
+              {ins.icon}
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 mb-0.5">{ins.title}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">{ins.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Streak callout */}
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/30 mb-5">
+        <span className="text-2xl">🔥</span>
+        <div>
+          <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">{streak}-day streak</p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500">Complete at least 1 task today to keep it going.</p>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ProjectInsights({ project }: { project: import("@/types/project").Project }) {
+  return (
+    <>
+      <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3">
+        Project Insights
+      </p>
+      <div className="flex flex-col gap-3 mb-4">
+        {project.insights.map((insight, i) => (
+          <div key={i} className="flex items-start gap-3">
+            <InsightIcon iconName={insight.iconName} />
+            <div>
+              <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 mb-0.5">{insight.title}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{insight.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3">
+        Phase Progress
+      </p>
+      <div className="flex flex-col gap-2 mb-4">
+        {project.phases.map((phase) => (
+          <div key={phase.number} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{phase.title}</p>
+              <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-600 mt-1.5 overflow-hidden">
+                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${phase.progress}%` }} />
+              </div>
+            </div>
+            <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">{phase.progress}%</span>
+          </div>
+        ))}
+      </div>
+
+      {project.coaching.length > 0 && (
+        <>
+          <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3">
+            Recent AI Coaching
+          </p>
+          <div className="flex flex-col gap-2">
+            {project.coaching.map((note, i) => {
+              const style = COACHING_STYLE[note.type];
+              return (
+                <div key={i} className={`rounded-xl p-3 ${style.bg}`}>
+                  <p className={`text-xs leading-relaxed ${style.text}`}>{note.text}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">{note.age}</p>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function DefaultInsights() {
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30 mb-5">
+      <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center shrink-0">
+        <Sparkles size={13} className="text-white" />
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">AI Sidekick</p>
+        <p className="text-[11px] text-gray-400 dark:text-gray-500">Ask me anything about your tasks and projects.</p>
+      </div>
+    </div>
+  );
 }
 
 // ── Message bubble ─────────────────────────────────────────────────────────
@@ -103,14 +219,22 @@ function Bubble({ msg }: { msg: Message }) {
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export default function AIAssistant({ onClose, tasks, stats, streak }: AIAssistantProps) {
+export default function AIAssistant({ onClose, pageContext }: AIAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const insights = buildInsights(tasks, stats);
   const hasMessages = messages.length > 0;
+
+  // Derive suggestions and system prompt from page context
+  const suggestions = pageContext.page === "today"
+    ? TODAY_SUGGESTIONS
+    : pageContext.page === "project"
+    ? PROJECT_SUGGESTIONS
+    : pageContext.page === "upcoming"
+    ? UPCOMING_SUGGESTIONS
+    : GENERIC_SUGGESTIONS;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -120,22 +244,17 @@ export default function AIAssistant({ onClose, tasks, stats, streak }: AIAssista
     inputRef.current?.focus();
   }, []);
 
-  async function sendMessage(text: string) {
-    if (!text.trim() || loading) return;
-    const userMsg: Message = { role: "user", content: text.trim() };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-    setLoading(true);
+  function buildSystemPrompt(): string {
+    const base = "You are TaskFlow's AI sidekick — a sharp, warm productivity assistant. You help users stay on top of their tasks.\n\n";
 
-    // Build context for Claude
-    const taskSummary = tasks
-      .slice(0, 20)
-      .map((t) => `- [${t.done ? "x" : " "}] ${t.label} (priority: ${t.priority ?? "none"}, due: ${t.dueDate ?? "no date"})`)
-      .join("\n");
-
-    const systemPrompt = `You are TaskFlow's AI sidekick — a sharp, warm productivity assistant. You help users stay on top of their tasks.
-
-Current user stats:
+    switch (pageContext.page) {
+      case "today": {
+        const { tasks, stats, streak } = pageContext;
+        const taskSummary = tasks
+          .slice(0, 20)
+          .map((t) => `- [${t.done ? "x" : " "}] ${t.label} (priority: ${t.priority ?? "none"}, due: ${t.dueDate ?? "no date"})`)
+          .join("\n");
+        return `${base}Current user stats:
 - Streak: ${streak} days
 - Tasks today: ${stats.total} total, ${stats.done} done (${stats.pct}%)
 - Overdue: ${stats.overdue}
@@ -144,6 +263,39 @@ Today's tasks:
 ${taskSummary}
 
 Keep responses concise (2-4 sentences max unless breaking something down). Be direct and actionable. Use bullet points sparingly — only when listing 3+ items. Don't be sycophantic.`;
+      }
+      case "project": {
+        const { project } = pageContext;
+        const taskCount = project.phases.reduce((sum, p) => sum + p.tasks.length, 0);
+        const doneCount = project.phases.reduce((sum, p) => sum + p.tasks.filter((t) => t.done).length, 0);
+        return `${base}You are looking at the project "${project.title}".
+- Progress: ${project.progress}%
+- Phases: ${project.phases.length}
+- Tasks: ${doneCount}/${taskCount} done
+- Deadline: ${project.deadline ?? "No deadline set"}
+
+Keep responses focused on project planning, task breakdown, and motivation. Be concise (2-4 sentences).`;
+      }
+      case "upcoming": {
+        return `${base}The user is looking at their upcoming tasks organized by due date. Help them prepare for what's ahead, prioritize effectively, and plan their schedule.`;
+      }
+      case "labels": {
+        return `${base}The user is browsing tasks filtered by labels. Help them organize, find patterns, and manage their labeled tasks effectively.`;
+      }
+      default: {
+        return `${base}Help the user with general productivity advice, task management tips, or answer any questions they have. Be concise and actionable.`;
+      }
+    }
+  }
+
+  async function sendMessage(text: string) {
+    if (!text.trim() || loading) return;
+    const userMsg: Message = { role: "user", content: text.trim() };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setLoading(true);
+
+    const systemPrompt = buildSystemPrompt();
 
     try {
       const history = [...messages, userMsg].map((m) => ({
@@ -219,39 +371,20 @@ Keep responses concise (2-4 sentences max unless breaking something down). Be di
       <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
         {!hasMessages ? (
           <>
-            {/* Insights cards */}
-            <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3">
-              Today's Insights
-            </p>
-            <div className="flex flex-col gap-2 mb-5">
-              {insights.map((ins, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ins.iconBg}`}>
-                    {ins.icon}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 mb-0.5">{ins.title}</p>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">{ins.body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Streak callout */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/30 mb-5">
-              <span className="text-2xl">🔥</span>
-              <div>
-                <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">{streak}-day streak</p>
-                <p className="text-[11px] text-gray-400 dark:text-gray-500">Complete at least 1 task today to keep it going.</p>
-              </div>
-            </div>
+            {pageContext.page === "today" ? (
+              <TodayInsights tasks={pageContext.tasks} stats={pageContext.stats} streak={pageContext.streak} />
+            ) : pageContext.page === "project" ? (
+              <ProjectInsights project={pageContext.project} />
+            ) : (
+              <DefaultInsights />
+            )}
 
             {/* Suggestions */}
             <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-2">
               Ask me anything
             </p>
             <div className="flex flex-col gap-1.5">
-              {SUGGESTIONS.map((s) => (
+              {suggestions.map((s) => (
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}

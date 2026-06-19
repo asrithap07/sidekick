@@ -9,6 +9,7 @@ type Context = {
 };
 
 // GET /api/projects/[id] — fetch a single project
+
 export async function GET(
   request: Request,
   context: Context

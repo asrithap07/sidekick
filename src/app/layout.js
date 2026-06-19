@@ -6,12 +6,47 @@ import "./globals.css";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import AIAssistant from "@/components/AIAssistant";
 import { TaskProvider } from "@/context/TaskContext";
+import { AIAssistantProvider, useAIAssistant } from "@/context/AIAssistantContext";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+function Shell({ children, theme, setTheme }) {
+  const { isOpen, closePanel, pageContext } = useAIAssistant();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const pageMap = {
+    "/today": "Today",
+    "/labels": "Labels",
+    "/upcoming": "Upcoming",
+    "/goals": "Goals",
+  };
+  const activePage = pageMap[pathname] ?? "Today";
+
+  return (
+    <div className="flex gap-4 w-full h-full">
+      <Sidebar
+        theme={theme}
+        onToggleTheme={setTheme}
+        activePage={activePage}
+        onNavigate={(label) => router.push(`/${label.toLowerCase()}`)}
+      />
+
+      <div className="flex-1 min-w-0 overflow-hidden">
+        {children}
+      </div>
+
+      {isOpen && (
+        <AIAssistant onClose={closePanel} pageContext={pageContext} />
+      )}
+    </div>
+  );
+}
 
 export default function RootLayout({ children }) {
   const [theme, setTheme] = useState("light");
@@ -35,26 +70,17 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <TaskProvider>
-          <div
-            className={`h-screen flex items-stretch p-4 transition-colors duration-300 ${
-              theme === "dark" ? "bg-gray-900" : "bg-gray-100"
-            }`}
-          >
-            <div className="flex gap-4 w-full h-full">
-              <Sidebar
-                theme={theme}
-                onToggleTheme={setTheme}
-                activePage={activePage}
-                onNavigate={(label) => router.push(`/${label.toLowerCase()}`)}
-              />
-
-              {/* This flex-1 fills all remaining space — the project page's
-                  own panel lives inside here and pushes content naturally */}
-              <div className="flex-1 min-w-0 overflow-hidden">
+          <AIAssistantProvider>
+            <div
+              className={`h-screen flex items-stretch p-4 transition-colors duration-300 ${
+                theme === "dark" ? "bg-gray-900" : "bg-gray-100"
+              }`}
+            >
+              <Shell theme={theme} setTheme={setTheme}>
                 {children}
-              </div>
+              </Shell>
             </div>
-          </div>
+          </AIAssistantProvider>
         </TaskProvider>
       </body>
     </html>

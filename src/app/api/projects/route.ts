@@ -3,7 +3,13 @@ import { getAllProjects } from "@/lib/mock/projects";
 import type { ProjectDraft } from "@/types/creation";
 
 // POST /api/projects — create a new project draft
-// Returns a mock ID. When Supabase is connected, this will INSERT into the DB.
+/*
+  called when the modal finishes:
+  - receives the draft
+  - generates a mock-<timestamp> ID
+  - returns {id}
+  right now we're not saving the draft content anywhere, we're just handing back an ID
+*/
 export async function POST(request: Request) {
   try {
     const body: ProjectDraft = await request.json();

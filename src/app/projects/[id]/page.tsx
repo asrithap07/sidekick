@@ -5,13 +5,14 @@ import { useParams } from "next/navigation";
 import {
   Sparkles, Target, CheckCircle2, Circle, ChevronRight,
   Plus, Pencil, MoreHorizontal, CalendarDays, Star,
-  FileText, MoreVertical, X,
+  FileText, MoreVertical,
 } from "lucide-react";
 
 import { PhaseSection } from "@/components/PhaseSection";
-import { InsightIcon, COACHING_STYLE } from "@/lib/utils/insight-icon";
+import { InsightIcon } from "@/lib/utils/insight-icon";
 import { getProject } from "@/lib/api/projects";
 import { getTagDisplay, getDueDateLabel } from "@/lib/utils/task-display-utils";
+import { useAIAssistant } from "@/context/AIAssistantContext";
 import type { Project } from "@/types/project";
 
 export default function ProjectPage() {
@@ -21,12 +22,10 @@ const { id } = useParams<{ id: string }>();
   const [error, setError] = useState<string | null>(null);
 
   const [checkedTasks, setCheckedTasks] = useState<Set<string>>(new Set());
-  const [insightsPanelOpen, setInsightsPanelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Overview");
+  const { togglePanel, setPageContext } = useAIAssistant();
 
   const tabs = ["Overview", "Tasks", "Insights", "Files"];
-
-  console.log("PROJECT PAGE LOADED", id);
 
   useEffect(() => {
     if (!id) return;
@@ -35,6 +34,13 @@ const { id } = useParams<{ id: string }>();
       .catch(() => setError("Failed to load project"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Set page context for AI assistant whenever project loads
+  useEffect(() => {
+    if (project) {
+      setPageContext({ page: "project", project });
+    }
+  }, [project, setPageContext]);
 
   function toggleTask(id: string) {
     setCheckedTasks((prev) => {
@@ -86,7 +92,7 @@ const { id } = useParams<{ id: string }>();
               <MoreHorizontal size={16} />
             </button>
             <button
-              onClick={() => setInsightsPanelOpen((v) => !v)}
+              onClick={() => togglePanel()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
             >
               <Sparkles size={13} />
@@ -302,74 +308,6 @@ const { id } = useParams<{ id: string }>();
           )}
         </div>
       </div>
-
-      {/* ── AI Insights panel ── */}
-      {insightsPanelOpen && (
-        <div className="w-80 shrink-0 flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden animate-in slide-in-from-right duration-200">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
-            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-              <Sparkles size={14} className="text-indigo-400" />
-              AI Insights
-            </p>
-            <button onClick={() => setInsightsPanelOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400">
-              <X size={14} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="flex flex-col gap-3 mb-4">
-              {project.insights.map((insight, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <InsightIcon iconName={insight.iconName} />
-                  <div>
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 mb-0.5">{insight.title}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{insight.body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {project.coaching.length > 0 && (
-              <>
-                <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3">
-                  Recent AI Coaching
-                </p>
-                <div className="flex flex-col gap-2">
-                  {project.coaching.map((note, i) => {
-                    const style = COACHING_STYLE[note.type];
-                    return (
-                      <div key={i} className={`rounded-xl p-3 ${style.bg}`}>
-                        <p className={`text-xs leading-relaxed ${style.text}`}>{note.text}</p>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">{note.age}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {project.attachments.length > 0 && (
-              <>
-                <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3 mt-4">
-                  Attachments
-                </p>
-                <div className="flex flex-col gap-2">
-                  {project.attachments.map((file, i) => (
-                    <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
-                        <FileText size={14} className="text-red-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{file.name}</p>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{file.meta}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

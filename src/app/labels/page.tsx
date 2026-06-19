@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { Tag, X } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { Sparkles, Tag, X } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
 import TaskItem from "@/components/TaskItem";
+import { useAIAssistant } from "@/context/AIAssistantContext";
 import { getAllLabels, getLabelCounts, filterTasksByLabel, getLabelStyle } from "@/lib/utils/label-utils";
-
 
 export default function LabelsView() {
   const { tasks, toggleDone, deleteTask } = useTasks();
+  const { togglePanel, setPageContext } = useAIAssistant();
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
 
   // Collect all unique labels across all tasks
@@ -27,12 +28,28 @@ const filteredTasks = useMemo(
   [tasks, selectedLabel]
 );
 
+  // Set page context for AI assistant
+  useEffect(() => {
+    setPageContext({ page: "labels", tasks });
+  }, [tasks, setPageContext]);
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
       {/* Header */}
       <div className="mb-5">
-        <h1 className="text-2xl font-bold leading-tight text-gray-800 dark:text-gray-100">Labels</h1>
-        <p className="text-sm mt-0.5 text-gray-400 dark:text-gray-500">Browse and filter tasks by label</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold leading-tight text-gray-800 dark:text-gray-100">Labels</h1>
+            <p className="text-sm mt-0.5 text-gray-400 dark:text-gray-500">Browse and filter tasks by label</p>
+          </div>
+          <button
+            onClick={() => togglePanel()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+          >
+            <Sparkles size={13} />
+            AI Assist
+          </button>
+        </div>
       </div>
 
       {/* Label chips */}

@@ -1,9 +1,8 @@
 import type { Project } from "@/types/project";
 
-// In-memory project store — holds both static mock data and dynamically
-// created projects (from the creation flow).
-// TODO: Replace with Supabase queries when backend is wired up.
+//This is our temporary static database right now, basically two JS arrays
 
+//these are two-handwrittten projects that always exist
 const STATIC_PROJECTS: Project[] = [
   {
     id: "internship-search",
@@ -338,11 +337,13 @@ const STATIC_PROJECTS: Project[] = [
   },
 ];
 
-// In-memory store. Starts with static projects.
-// New projects are added here during the creation flow.
+//dynamicProjects is an empty array that gets projects pushed into it during the app session
+//dynamicProjects is just a variable in memory, everytime the server restats it goes back to [], so new proejcts only survive until you refresh
 const dynamicProjects: Project[] = [];
 
-function allProjects(): Project[] {
+
+//these are three functions to get the projects (when supabase comes, this will be deleted and replaced by supabase queries
+export function allProjects(): Project[] {
   return [...STATIC_PROJECTS, ...dynamicProjects];
 }
 

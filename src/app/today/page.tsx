@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Sparkles, Plus, Info, Focus, Flame, CheckCircle2,
   Clock, TrendingUp, Lightbulb, ChevronRight, CalendarDays,
@@ -9,27 +9,19 @@ import { useTasks } from "@/context/TaskContext";
 import { Task } from "@/types/task";
 import TaskItem from "@/components/TaskItem";
 import AddTaskModal from "@/components/AddTaskModal";
-import AIAssistant from "@/components/AIAssistant";
+import { useAIAssistant } from "@/context/AIAssistantContext";
 import { getTaskStats } from "@/lib/utils/task-utils";
 import {getTaskInsights} from "@/lib/utils/task-insights"
 import { getGreeting } from "@/lib/utils/date-utils";
-
-type TaskBoardProps = {
-  onOpenAI: () => void;
-};
 
 // Static for now — wire to Supabase/localStorage later
 const STREAK = 7;
 const MOMENTUM = "+15%";
 
-
-
-export default function TaskBoard({ onOpenAI }: TaskBoardProps) {
+export default function TaskBoard() {
   const [isModalOpen, setModalOpen] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
   const { tasks, addTask, toggleDone, deleteTask, finishAll } = useTasks();
-
-
+  const { togglePanel, setPageContext } = useAIAssistant();
 
   const stats = useMemo(
   () => getTaskStats(tasks),
@@ -38,7 +30,12 @@ export default function TaskBoard({ onOpenAI }: TaskBoardProps) {
   const insights = useMemo(
   () => getTaskInsights(tasks, stats),
   [tasks, stats]);
-  
+
+  // Set page context for AI assistant
+  useEffect(() => {
+    setPageContext({ page: "today", tasks, stats, streak: STREAK });
+  }, [tasks, stats, setPageContext]);
+
   return (
     <div className="flex h-full gap-3 overflow-hidden">
       {/* ── Main board ── */}
@@ -126,7 +123,7 @@ export default function TaskBoard({ onOpenAI }: TaskBoardProps) {
                 }
               </p>
               <button
-                onClick={() => setAiOpen(true)}
+                onClick={() => togglePanel()}
                 className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-600 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
               >
                 <Sparkles size={12} />
@@ -158,7 +155,7 @@ export default function TaskBoard({ onOpenAI }: TaskBoardProps) {
               Focus Mode
             </button>
             <button
-              onClick={() => setAiOpen(true)}
+              onClick={() => togglePanel()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
             >
               <Sparkles size={13} />
@@ -205,16 +202,6 @@ export default function TaskBoard({ onOpenAI }: TaskBoardProps) {
           </button>
         </div>
       </div>
-
-      {/* ── AI Assistant panel ── */}
-      {aiOpen && (
-        <AIAssistant
-          onClose={() => setAiOpen(false)}
-          tasks={tasks}
-          stats={stats}
-          streak={STREAK}
-        />
-      )}
 
       {isModalOpen && (
         <AddTaskModal

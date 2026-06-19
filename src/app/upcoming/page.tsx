@@ -1,17 +1,16 @@
 "use client";
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { Sparkles, CalendarDays, Clock, Inbox } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
 import TaskItem from "@/components/TaskItem";
+import { useAIAssistant } from "@/context/AIAssistantContext";
 import { groupUpcomingTasks } from "@/lib/utils/task-utils";
 
-type UpcomingProps = {
-  onOpenAI: () => void;
-};
-
 // ── component ──────────────────────────────────────────────────────────────
-  export default function Upcoming({onOpenAI}: UpcomingProps) {
+export default function Upcoming() {
   const { tasks, toggleDone, deleteTask } = useTasks();
+  const { togglePanel, setPageContext } = useAIAssistant();
+
   const {
     overdueGroup,
     dateGroups,
@@ -32,6 +31,11 @@ type UpcomingProps = {
     totalUpcoming === 0 &&
     noDueDate.length === 0;
 
+  // Set page context for AI assistant
+  useEffect(() => {
+    setPageContext({ page: "upcoming", tasks });
+  }, [tasks, setPageContext]);
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
       {/* Header */}
@@ -42,7 +46,7 @@ type UpcomingProps = {
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Your tasks organised by due date</p>
           </div>
           <button
-            onClick={onOpenAI}
+            onClick={() => togglePanel()}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
           >
             <Sparkles size={13} />
