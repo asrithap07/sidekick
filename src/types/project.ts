@@ -2,7 +2,7 @@
 // (Previously it was re-typed inline in TaskContext — now there's one source.)
 export type Priority = "high" | "medium" | "low";
 
-export type PhaseStatus = "completed" | "in-progress" | "upcoming" | "locked";
+export type PhaseStatus = "completed" | "active" | "upcoming" | "locked";
 
 // PhaseTask is defined in types/task.ts and extended there.
 // We re-export it here so project-related imports stay clean.

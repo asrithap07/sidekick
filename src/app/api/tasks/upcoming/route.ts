@@ -16,8 +16,9 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const tasks = data.map(({ task_tags, projects, ...task }) => ({
+  const tasks = data.map(({ task_tags, projects, due_date, ...task }) => ({
     ...task,
+    dueDate: due_date,
     tags: task_tags.map((r: { tag: string }) => r.tag),
     project: projects?.title ?? null,  // flatten to the string your UI expects
   }))

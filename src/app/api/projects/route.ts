@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { ProjectDraft } from "@/types/creation";
 
+export function createSlug(text: string) {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
 // GET /api/projects — list all projects (for sidebar)
 export async function GET() {
   const { data, error } = await supabase
@@ -25,11 +32,12 @@ export async function POST(request: Request) {
       .from('projects')
       .insert({
         title: body.goal,
+        slug: createSlug(body.goal),
         description: body.description ?? null,
         deadline: body.targetDate ?? null,
         icon: '🎯',          // default icon, user can change later
       })
-      .select('id')
+      .select('id, slug')
       .single();
 
     if (error) {

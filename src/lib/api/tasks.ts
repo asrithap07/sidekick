@@ -1,42 +1,5 @@
 import type { Task } from "@/types/task";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Mock data
-// Swap the body of each function for a Supabase call when the backend is ready.
-// The signatures and return types stay exactly the same — nothing else changes.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MOCK_TASKS: Task[] = [
-  {
-    id: "1",
-    label: "Create UI",
-    priority: "high",
-    project: null,
-    tags: ["career", "coding"],
-    done: false,
-    dueDate: "2026-06-02",
-  },
-  {
-    id: "2",
-    label: "Apply to 2 summer internships",
-    priority: "low",
-    project: null,
-    tags: ["career"],
-    done: false,
-    dueDate: "2026-06-03",
-  },
-  {
-    id: "3",
-    label: "Go to the gym",
-    priority: "medium",
-    project: null,
-    tags: ["life"],
-    done: true,
-    dueDate: "2026-06-02",
-  },
-];
-
-
 export async function fetchTasks(): Promise<Task[]> {
   const res = await fetch("/api/tasks");
   if (!res.ok) throw new Error("Failed to fetch tasks");

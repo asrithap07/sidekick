@@ -22,8 +22,9 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const tasks = data.map(({ task_tags, projects, ...task }) => ({
+  const tasks = data.map(({ task_tags, projects, due_date, ...task }) => ({
     ...task,
+    dueDate: due_date,
     tags: task_tags.map((r: { tag: string }) => r.tag),
     project: projects?.title ?? null,  // flatten to the string your UI expects
   }))
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     .insert({
       label: body.label,
       priority: body.priority,
-      due_date: body.due_date,
+      due_date: body.dueDate ?? body.due_date ?? null,
       project_id: body.project_id ?? null,
       phase_id: body.phase_id ?? null,
       done: false,
@@ -56,10 +57,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
   const task = {
-    ...data, //spread everything supabase returned onto the new object
-    tags: data.task_tags.map((r: {tag: string}) => r.tag), //ge tthe tag names into an array
-    project: data.projects?.title ?? null, //overwrites the projects key from the spread or make it null
+    ...data,
+    dueDate: data.due_date,
+    tags: data.task_tags.map((r: { tag: string }) => r.tag),
+    project: data.projects?.title ?? null,
   }
+  delete task.due_date
+  delete task.task_tags
+  delete task.projects
 
   return NextResponse.json(task, { status: 201 });
 }

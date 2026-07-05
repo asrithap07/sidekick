@@ -58,6 +58,8 @@ src/
       tasks/
         [id]/
           route.ts
+        upcoming/
+          route.ts
         route.ts
     labels/
       page.tsx
@@ -93,8 +95,6 @@ src/
       ai.ts
       projects.ts
       tasks.ts
-    mock/
-      projects.ts
     utils/
       date-utils.ts
       insight-icon.tsx
@@ -104,6 +104,7 @@ src/
       task-display-utils.ts
       task-insights.tsx
       task-utils.ts
+    supabase.ts
   types/
     creation.ts
     project.ts
@@ -145,48 +146,212 @@ This section contains the contents of the repository's files.
 </file>
 
 <file path="src/app/api/ai/route.ts">
+import { NextResponse } from "next/server";
+import type { ProjectDraft, GeneratedPhase } from "@/types/creation";
+import { supabase } from "@/lib/supabase";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/ai — generate a project plan from a ProjectDraft
+//
+// Currently returns mock phases. When you're ready for real AI:
+// 1. Install @anthropic-ai/sdk or @openai/openai
+// 2. Set ANTHROPIC_API_KEY or OPENAI_API_KEY in .env.local
+// 3. Replace the mock return with an API call
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MOCK_PHASES: GeneratedPhase[] = [
+  {
+    id: "phase-0",
+    name: "Resume & Branding",
+    description: "Polish your resume, LinkedIn, and portfolio.",
+    tasks: [
+      { id: "t-0-0", title: "Update resume with latest projects and skills", priority: "high" },
+      { id: "t-0-1", title: "Write a compelling LinkedIn headline and summary", priority: "high" },
+      { id: "t-0-2", title: "Pin 2–3 best projects to GitHub profile", priority: "medium" },
+      { id: "t-0-3", title: "Ask a peer or mentor to review your resume", priority: "medium" },
+      { id: "t-0-4", title: "Create or update your personal portfolio site", priority: "low" },
+    ],
+  },
+  {
+    id: "phase-1",
+    name: "Technical Foundations",
+    description: "Build the DSA and system design skills needed to pass technical screens.",
+    tasks: [
+      { id: "t-1-0", title: "Complete Leetcode easy: Arrays & Strings (20 problems)", priority: "high" },
+      { id: "t-1-1", title: "Complete Leetcode medium: Trees & Graphs (15 problems)", priority: "high" },
+      { id: "t-1-2", title: "Study Big-O notation and space/time complexity", priority: "high" },
+      { id: "t-1-3", title: "Read system design primer: load balancing, caching, DBs", priority: "medium" },
+      { id: "t-1-4", title: "Do 2 timed mock interviews on Pramp or Interviewing.io", priority: "medium" },
+    ],
+  },
+  {
+    id: "phase-2",
+    name: "Applications",
+    description: "Research target companies and submit a focused batch of applications.",
+    tasks: [
+      { id: "t-2-0", title: "Build a spreadsheet to track companies and statuses", priority: "high" },
+      { id: "t-2-1", title: "Apply to 5 big tech internship programs", priority: "high" },
+      { id: "t-2-2", title: "Apply to 10 mid-size tech companies", priority: "high" },
+      { id: "t-2-3", title: "Reach out to 3 alumni at target companies on LinkedIn", priority: "medium" },
+    ],
+  },
+  {
+    id: "phase-3",
+    name: "Interview Prep",
+    description: "Practice interviews end-to-end so you perform confidently under pressure.",
+    tasks: [
+      { id: "t-3-0", title: "Prepare STAR stories for 5 behavioral questions", priority: "high" },
+      { id: "t-3-1", title: "Do a full 45-min mock technical interview with a friend", priority: "high" },
+      { id: "t-3-2", title: "Research each company before your scheduled screen", priority: "high" },
+      { id: "t-3-3", title: "Practice explaining your projects out loud in under 2 min", priority: "medium" },
+    ],
+  },
+];
+
+export async function POST(request: Request) {
+  try {
+    const body: ProjectDraft = await request.json();
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // TODO: Replace with real AI call
+    //
+    // Example (Anthropic):
+    //
+    //   import Anthropic from "@anthropic-ai/sdk";
+    //   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    //
+    //   const response = await anthropic.messages.create({
+    //     model: "claude-3-5-sonnet-20241022",
+    //     max_tokens: 4096,
+    //     messages: [{
+    //       role: "user",
+    //       content: `Generate a project plan for: ${body.goal}\n\nDescription: ${body.description}\nTarget date: ${body.targetDate}\n\nReturn a JSON array of phases with tasks. Each phase has: id, name, description, tasks[]. Each task has: id, title, priority.`,
+    //     }],
+    //   });
+    //
+    //   const phases = JSON.parse(response.content[0].text);
+    //
+    // ──────────────────────────────────────────────────────────────────────────
+
+    // For now, return mock phases after a short delay so the spinner plays
+    await new Promise((r) => setTimeout(r, 3000));
+
+    // Optionally save the draft to projects table if needed
+    // (The project was already created via POST /api/projects, so this is just for AI generation)
+
+    return NextResponse.json({ phases: MOCK_PHASES });
+  } catch {
+    return NextResponse.json({ error: "Failed to generate plan" }, { status: 500 });
+  }
+}
 </file>
 
 <file path="src/app/api/tasks/[id]/route.ts">
 import { NextResponse } from "next/server";
-import type { Task } from "@/types/task";
+import { supabase } from "@/lib/supabase";
 
-// In-memory store — shared with route.ts in dev via module scope.
-// This is a known limitation of the mock approach: in production Next.js
-// each serverless invocation is isolated. It doesn't matter because
-// this file goes away when Supabase is wired.
-let tasks: Task[] = [];
+type Context = {
+  params: Promise<{
+    id: string;
+  }>;
+};
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/tasks/[id] — update a task (toggle done, change priority, etc.)
+// ─────────────────────────────────────────────────────────────────────────────
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  context: Context
 ) {
-  const patch = await request.json();
+  const { id } = await context.params;
+  const body = await request.json();
 
-  // TODO (Supabase):
-  // const { data, error } = await supabase
-  //   .from('tasks').update(patch).eq('id', params.id).select().single()
+  // Map camelCase frontend fields → snake_case Supabase columns
+  const patch: Record<string, unknown> = {};
+  if (body.label !== undefined) patch.label = body.label;
+  if (body.done !== undefined) patch.done = body.done;
+  if (body.priority !== undefined) patch.priority = body.priority;
+  if (body.dueDate !== undefined) patch.due_date = body.dueDate;
+  if (body.project_id !== undefined) patch.project_id = body.project_id;
+  if (body.phase_id !== undefined) patch.phase_id = body.phase_id;
 
-  tasks = tasks.map((t) => (t.id === params.id ? { ...t, ...patch } : t));
-  const updated = tasks.find((t) => t.id === params.id);
+  const { data, error } = await supabase
+    .from("tasks")
+    .update(patch)
+    .eq("id", id)
+    .select("*, task_tags(tag), projects(title)")
+    .single();
 
-  if (!updated) {
+  if (error) {
+    console.error(error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!data) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json(updated);
+  // Map snake_case Supabase response → camelCase frontend Task
+  const task = {
+    ...data,
+    dueDate: data.due_date,
+    tags: data.task_tags?.map((r: { tag: string }) => r.tag) ?? [],
+    project: data.projects?.title ?? null,
+  };
+  delete task.due_date;
+  delete task.task_tags;
+  delete task.projects;
+
+  return NextResponse.json(task);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE /api/tasks/[id] — delete a task
+// ─────────────────────────────────────────────────────────────────────────────
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } }
+  context: Context
 ) {
-  // TODO (Supabase):
-  // const { error } = await supabase.from('tasks').delete().eq('id', params.id)
+  const { id } = await context.params;
 
-  tasks = tasks.filter((t) => t.id !== params.id);
+  const { error } = await supabase.from("tasks").delete().eq("id", id);
+
+  if (error) {
+    console.error(error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
   return new NextResponse(null, { status: 204 });
+}
+</file>
+
+<file path="src/app/api/tasks/upcoming/route.ts">
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
+
+export async function GET() {
+  const today = new Date().toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*, task_tags(tag), projects(title)')  // add projects(title)
+    .gt('due_date', today)
+    .eq('done', false)
+    .order('due_date', { ascending: true })
+
+  if (error) {
+    console.error(error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  const tasks = data.map(({ task_tags, projects, due_date, ...task }) => ({
+    ...task,
+    dueDate: due_date,
+    tags: task_tags.map((r: { tag: string }) => r.tag),
+    project: projects?.title ?? null,  // flatten to the string your UI expects
+  }))
+
+  return NextResponse.json(tasks)
 }
 </file>
 
@@ -238,7 +403,23 @@ export function useAIAssistant() {
 </file>
 
 <file path="src/lib/api/ai.ts">
+import type { ProjectDraft, GeneratedPhase } from "@/types/creation";
 
+export async function generatePlan(draft: ProjectDraft): Promise<GeneratedPhase[]> {
+  const res = await fetch("/api/ai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(draft),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to generate plan" }));
+    throw new Error(err.error);
+  }
+
+  const data = await res.json();
+  return data.phases as GeneratedPhase[];
+}
 </file>
 
 <file path="src/lib/utils/date-utils.ts">
@@ -540,6 +721,15 @@ export function groupUpcomingTasks(tasks: Task[]) {
 }
 </file>
 
+<file path="src/lib/supabase.ts">
+import { createClient } from '@supabase/supabase-js'
+
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+</file>
+
 <file path="src/types/stats.ts">
 export interface Stats {
   total: number;
@@ -826,66 +1016,6 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 }
 </file>
 
-<file path="src/app/api/tasks/route.ts">
-import { NextResponse } from "next/server";
-import type { Task } from "@/types/task";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// In-memory store (dev only)
-// Replace with: const { data } = await supabase.from('tasks')...
-// ─────────────────────────────────────────────────────────────────────────────
-
-let tasks: Task[] = [
-  {
-    id: "1",
-    label: "Create UI",
-    priority: "high",
-    project: "CS Project",
-    tags: ["career", "coding"],
-    done: false,
-    dueDate: "2026-06-02",
-  },
-  {
-    id: "2",
-    label: "Apply to 2 summer internships",
-    priority: "low",
-    project: null,
-    tags: ["career"],
-    done: false,
-    dueDate: "2026-06-03",
-  },
-  {
-    id: "3",
-    label: "Go to the gym",
-    priority: "medium",
-    project: null,
-    tags: ["life"],
-    done: true,
-    dueDate: "2026-06-02",
-  },
-];
-
-export async function GET() {
-  // TODO (Supabase): const { data, error } = await supabase.from('tasks').select('*')
-  return NextResponse.json(tasks);
-}
-
-export async function POST(request: Request) {
-  const body = await request.json();
-
-  const newTask: Task = {
-    id: crypto.randomUUID(),
-    done: false,
-    ...body,
-  };
-
-  // TODO (Supabase): const { data, error } = await supabase.from('tasks').insert(newTask).select().single()
-  tasks = [...tasks, newTask];
-
-  return NextResponse.json(newTask, { status: 201 });
-}
-</file>
-
 <file path="src/app/globals.css">
 @import "tailwindcss";
 
@@ -1074,86 +1204,6 @@ export function PhaseStatusBadge({ status }: { status: import("@/types/project")
 }
 </file>
 
-<file path="src/lib/api/tasks.ts">
-import type { Task } from "@/types/task";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Mock data
-// Swap the body of each function for a Supabase call when the backend is ready.
-// The signatures and return types stay exactly the same — nothing else changes.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MOCK_TASKS: Task[] = [
-  {
-    id: "1",
-    label: "Create UI",
-    priority: "high",
-    project: "CS Project",
-    tags: ["career", "coding"],
-    done: false,
-    dueDate: "2026-06-02",
-  },
-  {
-    id: "2",
-    label: "Apply to 2 summer internships",
-    priority: "low",
-    project: null,
-    tags: ["career"],
-    done: false,
-    dueDate: "2026-06-03",
-  },
-  {
-    id: "3",
-    label: "Go to the gym",
-    priority: "medium",
-    project: null,
-    tags: ["life"],
-    done: true,
-    dueDate: "2026-06-02",
-  },
-];
-
-// In-memory store so mutations feel real during development.
-// This goes away entirely when Supabase is wired — the DB is the store.
-let store: Task[] = [...MOCK_TASKS];
-
-export async function fetchTasks(): Promise<Task[]> {
-  const res = await fetch("/api/tasks");
-  if (!res.ok) throw new Error("Failed to fetch tasks");
-  return res.json();
-}
-
-export async function createTask(
-  data: Omit<Task, "id" | "done">
-): Promise<Task> {
-  const res = await fetch("/api/tasks", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Failed to create task");
-  return res.json();
-}
-
-export async function updateTask(
-  id: string,
-  patch: Partial<Task>
-): Promise<Task> {
-  const res = await fetch(`/api/tasks/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(patch),
-  });
-  if (!res.ok) throw new Error("Failed to update task");
-  return res.json();
-}
-
-export async function deleteTask(id: string): Promise<void> {
-  const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete task");
-}
-</file>
-
 <file path="src/lib/utils/project-creation.ts">
 "use client";
 
@@ -1298,50 +1348,76 @@ export interface PhaseTask extends Task{
 }
 </file>
 
-<file path="src/app/api/projects/[id]/route.ts">
+<file path="src/app/api/tasks/route.ts">
 import { NextResponse } from "next/server";
-import { getProjectById, addProject } from "@/lib/mock/projects";
-import type { Project } from "@/types/project";
+import { supabase } from "@/lib/supabase";
 
-type Context = {
-  params: Promise<{
-    id: string;
-  }>;
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// In-memory store (dev only)
+// Replace with: const { data } = await supabase.from('tasks')...
+// ─────────────────────────────────────────────────────────────────────────────
 
-// GET /api/projects/[id] — fetch a single project
 
-export async function GET(
-  request: Request,
-  context: Context
-) {
-  const { id } = await context.params;
 
-  console.log("REQUEST URL:", request.url);
-  console.log("PARAM ID:", id);
+export async function GET() {
+  const today = new Date().toISOString().split('T')[0]
 
-  const project = getProjectById(id);
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*, task_tags(tag), projects(title)')  // add projects(title)
+    .eq('due_date', today)
+    .eq('done', false)
 
-  if (!project) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (error) {
+    console.error(error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(project);
+  const tasks = data.map(({ task_tags, projects, due_date, ...task }) => ({
+    ...task,
+    dueDate: due_date,
+    tags: task_tags.map((r: { tag: string }) => r.tag),
+    project: projects?.title ?? null,  // flatten to the string your UI expects
+  }))
+
+  return NextResponse.json(tasks)
 }
 
-// PUT /api/projects/[id] — upsert a project (used after generation to save it)
-export async function PUT(
-  request: Request,
-  context: Context
-) {
-  const { id } = await context.params;
-  const body: Project = await request.json();
+export async function POST(request: Request) {
+  const body = await request.json();
 
-  // Assign the URL's ID to the project so the redirect resolves correctly
-  const saved = { ...body, id };
-  addProject(saved);
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert({
+      label: body.label,
+      priority: body.priority,
+      due_date: body.dueDate ?? body.due_date ?? null,
+      project_id: body.project_id ?? null,
+      phase_id: body.phase_id ?? null,
+      done: false,
+    })
+    // returning the task we just inserted
+    // look in the task_tags table for all rows connected to this task but only return the tag column
+    // do the same with projects
+    .select('*, task_tags(tag), projects(title)')
+    //unwrap it so the data is one instead of [object]
+    .single()
+  
+  if (error) {
+    console.error(error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+  const task = {
+    ...data,
+    dueDate: data.due_date,
+    tags: data.task_tags.map((r: { tag: string }) => r.tag),
+    project: data.projects?.title ?? null,
+  }
+  delete task.due_date
+  delete task.task_tags
+  delete task.projects
 
-  return NextResponse.json(saved, { status: 200 });
+  return NextResponse.json(task, { status: 201 });
 }
 </file>
 
@@ -2575,59 +2651,7 @@ export function useTasks() {
 <file path="src/lib/api/projects.ts">
 import type { ProjectDraft, GeneratedPhase } from "@/types/creation";
 import type { Project } from "@/types/project";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Mock data
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MOCK_PHASES: GeneratedPhase[] = [
-  {
-    id: "phase-0",
-    name: "Resume & Branding",
-    description: "Polish your resume, LinkedIn, and portfolio.",
-    tasks: [
-      { id: "t-0-0", title: "Update resume with latest projects and skills", priority: "high" },
-      { id: "t-0-1", title: "Write a compelling LinkedIn headline and summary", priority: "high" },
-      { id: "t-0-2", title: "Pin 2–3 best projects to GitHub profile", priority: "medium" },
-      { id: "t-0-3", title: "Ask a peer or mentor to review your resume", priority: "medium" },
-      { id: "t-0-4", title: "Create or update your personal portfolio site", priority: "low" },
-    ],
-  },
-  {
-    id: "phase-1",
-    name: "Technical Foundations",
-    description: "Build the DSA and system design skills needed to pass technical screens.",
-    tasks: [
-      { id: "t-1-0", title: "Complete Leetcode easy: Arrays & Strings (20 problems)", priority: "high" },
-      { id: "t-1-1", title: "Complete Leetcode medium: Trees & Graphs (15 problems)", priority: "high" },
-      { id: "t-1-2", title: "Study Big-O notation and space/time complexity", priority: "high" },
-      { id: "t-1-3", title: "Read system design primer: load balancing, caching, DBs", priority: "medium" },
-      { id: "t-1-4", title: "Do 2 timed mock interviews on Pramp or Interviewing.io", priority: "medium" },
-    ],
-  },
-  {
-    id: "phase-2",
-    name: "Applications",
-    description: "Research target companies and submit a focused batch of applications.",
-    tasks: [
-      { id: "t-2-0", title: "Build a spreadsheet to track companies and statuses", priority: "high" },
-      { id: "t-2-1", title: "Apply to 5 big tech internship programs", priority: "high" },
-      { id: "t-2-2", title: "Apply to 10 mid-size tech companies", priority: "high" },
-      { id: "t-2-3", title: "Reach out to 3 alumni at target companies on LinkedIn", priority: "medium" },
-    ],
-  },
-  {
-    id: "phase-3",
-    name: "Interview Prep",
-    description: "Practice interviews end-to-end so you perform confidently under pressure.",
-    tasks: [
-      { id: "t-3-0", title: "Prepare STAR stories for 5 behavioral questions", priority: "high" },
-      { id: "t-3-1", title: "Do a full 45-min mock technical interview with a friend", priority: "high" },
-      { id: "t-3-2", title: "Research each company before your scheduled screen", priority: "high" },
-      { id: "t-3-3", title: "Practice explaining your projects out loud in under 2 min", priority: "medium" },
-    ],
-  },
-];
+import { generatePlan } from "./ai";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API functions
@@ -2646,10 +2670,9 @@ export async function createProject(draft: ProjectDraft): Promise<{ id: string }
 export async function generateProjectPlan(
   draft: ProjectDraft
 ): Promise<GeneratedPhase[]> {
-  // Simulate network delay so the generating animation plays
-  await new Promise((r) => setTimeout(r, 3000));
-  // TODO: swap for real Anthropic API call via /api/ai
-  return MOCK_PHASES;
+  // Calls the real /api/ai endpoint (which currently returns mock data,
+  // but is ready to swap for Anthropic/OpenAI when you're ready)
+  return generatePlan(draft);
 }
 
 export async function getProject(id: string): Promise<Project> {
@@ -2669,402 +2692,164 @@ export async function saveProject(id: string, project: Project): Promise<Project
 }
 </file>
 
-<file path="src/lib/mock/projects.ts">
-import type { Project } from "@/types/project";
+<file path="src/lib/api/tasks.ts">
+import type { Task } from "@/types/task";
 
-//This is our temporary static database right now, basically two JS arrays
-
-//these are two-handwrittten projects that always exist
-const STATIC_PROJECTS: Project[] = [
-  {
-    id: "internship-search",
-    title: "Internship Search",
-    icon: "💼",
-    description: "Land a Summer 2027 SWE internship",
-    deadline: "2027-08-15",
-    progress: 62,
-
-    phases: [
-      {
-        number: 1,
-        title: "Resume & Branding",
-
-        status: "completed",
-        progress: 100,
-        tasks: [
-          {
-            id: "1-1",
-            label: "Update resume with latest projects",
-            priority: "high",
-            done: true,
-            project: "internship-search",
-            tags: ["resume"],
-            dueDate: "2026-06-20"
-          },
-          {
-            id: "1-2",
-            label: "Optimise LinkedIn headline + about",
-            priority: "medium",
-            done: true,
-            project: "internship-search",
-            tags: ["linkedin"],
-            dueDate: "2026-06-21"
-          },
-          {
-            id: "1-3",
-            label: "Polish portfolio write-ups",
-            priority: "low",
-            done: true,
-            project: "internship-search",
-            tags: ["portfolio"],
-            dueDate: "2026-06-22"
-          },
-        ],
-      },
-
-      {
-        number: 2,
-        title: "Applications",
-        status: "in-progress",
-        progress: 60,
-        tasks: [
-          {
-            id: "2-1",
-            label: "Research target companies list",
-            priority: "high",
-            done: true,
-            project: "internship-search",
-            tags: ["research"],
-            dueDate: "2026-07-15"
-
-          },
-          {
-            id: "2-2",
-            label: "Apply to Google SWE Intern",
-            priority: "high",
-            done: false,
-            project: "internship-search",
-            tags: ["application"],
-            dueDate: "2026-07-18",
-          },
-          {
-            id: "2-3",
-            label: "Apply to Meta University Program",
-            priority: "high",
-            done: false,
-            project: "internship-search",
-            tags: ["application"],
-            dueDate: "2026-07-18",
-          },
-          {
-            id: "2-4",
-            label: "Set up application tracker spreadsheet",
-            priority: "medium",
-            done: false,
-            project: "internship-search",
-            tags: ["admin"],
-            dueDate: "2026-07-19",
-          },
-        ],
-      },
-
-      {
-        number: 3,
-        title: "Interview Prep",
-        status: "upcoming",
-        progress: 0,
-        tasks: [
-          {
-            id: "3-1",
-            label: "LeetCode: Arrays",
-            priority: "high",
-            done: false,
-            project: "internship-search",
-            tags: ["dsa"],
-            dueDate: "2027-08-01",
-          },
-          {
-            id: "3-2",
-            label: "LeetCode: Trees",
-            priority: "high",
-            done: false,
-            project: "internship-search",
-            tags: ["dsa"],
-            dueDate: "2027-08-05",
-          },
-          {
-            id: "3-3",
-            label: "System design: URL shortener",
-            priority: "medium",
-            done: false,
-            project: "internship-search",
-            tags: ["system-design"],
-            dueDate: "2027-08-10",
-          },
-        ],
-      },
-    ],
-    attachments: [],
-    insights: [
-      {
-        iconName: "trending-up",
-        title: "Steady progress",
-        body: "You've completed 62% of your internship search plan.",
-      },
-      {
-        iconName: "target",
-        title: "Focus on applications",
-        body: "Phase 2 (Applications) is in progress — keep the momentum going.",
-      },
-    ],
-    coaching: [],
-  },
-
-  {
-    id: "japan-trip-2026",
-    title: "Japan Trip 2026",
-    icon: "✈️",
-    description: "Plan a 2-week Japan trip",
-    deadline: "2026-12-15",
-    progress: 41,
-
-    phases: [
-      {
-        number: 1,
-        title: "Research & Budget",
-        status: "completed",
-        progress: 100,
-        tasks: [
-          {
-            id: "jp-1",
-            label: "Choose travel dates",
-            priority: "high",
-            done: true,
-            project: "japan-trip-2026",
-            tags: ["planning"],
-            dueDate:"2026-10-05"
-          },
-          {
-            id: "jp-2",
-            label: "Estimate total budget",
-            priority: "high",
-            done: true,
-            project: "japan-trip-2026",
-            tags: ["budget"],
-            dueDate:"2026-10-10"
-          },
-          {
-            id: "jp-3",
-            label: "Draft itinerary",
-            priority: "medium",
-            done: true,
-            project: "japan-trip-2026",
-            tags: ["planning"],
-          dueDate:"2026-10-15"
-          },
-        ],
-      },
-
-      {
-        number: 2,
-        title: "Flights & Hotels",
-        status: "in-progress",
-        progress: 60,
-        tasks: [
-          {
-            id: "jp-4",
-            label: "Book round-trip flight",
-            priority: "high",
-            done: true,
-            project: "japan-trip-2026",
-            tags: ["booking"],
-            dueDate:"2026-11-15"
-          },
-          {
-            id: "jp-5",
-            label: "Reserve Tokyo hotel",
-            priority: "high",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["booking"],
-           dueDate:"2026-11-15"
-          },
-          {
-            id: "jp-6",
-            label: "Reserve Kyoto hotel",
-            priority: "high",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["booking"],
-          dueDate:"2026-11-25"
-          },
-          {
-            id: "jp-7",
-            label: "Purchase travel insurance",
-            priority: "medium",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["travel"],
-            dueDate:"2026-11-25"
-          },
-        ],
-      },
-
-      {
-        number: 3,
-        title: "Activities",
-        status: "in-progress",
-        progress: 35,
-        tasks: [
-          {
-            id: "jp-8",
-            label: "Reserve Shibuya Sky",
-            priority: "medium",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["activities"],
-          },
-          {
-            id: "jp-9",
-            label: "Book TeamLabs",
-            priority: "medium",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["activities"],
-          },
-          {
-            id: "jp-10",
-            label: "Book Nintendo Museum",
-            priority: "medium",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["activities"],
-          },
-          {
-            id: "jp-11",
-            label: "Book Universal Studios Japan",
-            priority: "high",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["activities"],
-          },
-        ],
-      },
-
-      {
-        number: 4,
-        title: "Travel Preparation",
-        status: "upcoming",
-        progress: 0,
-        tasks: [
-          {
-            id: "jp-12",
-            label: "Verify passport expiration",
-            priority: "high",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["documents"],
-          },
-          {
-            id: "jp-13",
-            label: "Purchase luggage",
-            priority: "medium",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["packing"],
-          },
-          {
-            id: "jp-14",
-            label: "Learn basic Japanese phrases",
-            priority: "low",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["language"],
-          },
-          {
-            id: "jp-15",
-            label: "Download offline maps",
-            priority: "low",
-            done: false,
-            project: "japan-trip-2026",
-            tags: ["travel"],
-          },
-        ],
-      },
-    ],
-    attachments: [],
-    insights: [
-      {
-        iconName: "zap",
-        title: "Two phases in progress",
-        body: "Flights & Hotels and Activities both need attention. Keep the momentum going!",
-      },
-      {
-        iconName: "clock",
-        title: "Booking deadlines coming up",
-        body: "Flight and hotel bookings are due soon — prioritize those this week.",
-      },
-    ],
-    coaching: [],
-  },
-];
-
-//dynamicProjects is an empty array that gets projects pushed into it during the app session
-//dynamicProjects is just a variable in memory, everytime the server restats it goes back to [], so new proejcts only survive until you refresh
-const dynamicProjects: Project[] = [];
-
-
-//these are three functions to get the projects (when supabase comes, this will be deleted and replaced by supabase queries
-export function allProjects(): Project[] {
-  return [...STATIC_PROJECTS, ...dynamicProjects];
+export async function fetchTasks(): Promise<Task[]> {
+  const res = await fetch("/api/tasks");
+  if (!res.ok) throw new Error("Failed to fetch tasks");
+  return res.json();
 }
 
-export function getProjectById(id: string): Project | undefined {
-  return allProjects().find((p) => p.id === id);
+export async function createTask(
+  data: Omit<Task, "id" | "done">
+): Promise<Task> {
+  const res = await fetch("/api/tasks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create task");
+  return res.json();
 }
 
-export function getAllProjects(): Project[] {
-  return allProjects();
+export async function updateTask(
+  id: string,
+  patch: Partial<Task>
+): Promise<Task> {
+  const res = await fetch(`/api/tasks/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error("Failed to update task");
+  return res.json();
 }
 
-export function addProject(project: Project): void {
-  dynamicProjects.push(project);
+export async function deleteTask(id: string): Promise<void> {
+  const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete task");
 }
 </file>
 
-<file path="src/app/api/projects/route.ts">
+<file path="src/app/api/projects/[id]/route.ts">
 import { NextResponse } from "next/server";
-import { getAllProjects } from "@/lib/mock/projects";
-import type { ProjectDraft } from "@/types/creation";
+import type { Project } from "@/types/project";
+import { supabase } from "@/lib/supabase";
 
-// POST /api/projects — create a new project draft
-/*
-  called when the modal finishes:
-  - receives the draft
-  - generates a mock-<timestamp> ID
-  - returns {id}
-  right now we're not saving the draft content anywhere, we're just handing back an ID
-*/
-export async function POST(request: Request) {
-  try {
-    const body: ProjectDraft = await request.json();
-    console.log("CREATE PROJECT DRAFT:", body);
+type Context = {
+  params: Promise<{
+    id: string;
+  }>;
+};
 
-    // Mock: return a stable-ish ID based on the goal name so navigation works
-    const id = `mock-${Date.now()}`;
+// GET /api/projects/[id] — fetch a single project
 
-    return NextResponse.json({ id }, { status: 201 });
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 }
-    );
+export async function GET(
+  request: Request,
+  context: Context
+) {
+  
+  const {id} = await context.params;
+
+  //fetch the project row with that id
+  const { data: project, error: projectError} = await supabase
+    .from('projects')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (projectError || !project) {
+    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
+
+  //fetch phases
+  const { data: phases, error: phasesError } = await supabase
+    .from('phase_progress')       // use your view — gives progress for free
+    .select('*')
+    .eq('project_id', id)
+    .order('number');
+
+  if (phasesError) {
+    return NextResponse.json({ error: phasesError.message }, { status: 500 });
+  }
+
+  //fetch the insights, coachign, and attachments
+  const [
+    { data: insights },
+    { data: coaching },
+    { data: attachments },
+  ] = await Promise.all([
+    supabase.from('insights').select('*').eq('project_id', id),
+    supabase.from('coach_messages').select('*').eq('project_id', id),
+    supabase.from('attachments').select('*').eq('project_id', id),
+  ]);
+
+  //assemble the full proejct with its progress calculated, its phases and tasks, ingihts, coaching, and attachments
+  const assembled = {
+    ...project,
+    progress: phases?.length
+      ? Math.round(phases.reduce((sum, p) => sum + Number(p.progress), 0) / phases.length)
+      : 0,
+    phases: (phases ?? []).map(phase => ({
+      id: phase.id,
+      number: phase.number,
+      title: phase.title,
+      status: phase.status,
+      progress: phase.tasks.length === 0 ? 0 : Math.round(
+        phase.tasks.filter((t: {done: boolean}) => t.done).length 
+        / phase.tasks.length * 100
+      ),
+      tasks: phase.tasks.map((t: any) => ({
+        id: t.id,
+        label: t.label,
+        done: t.done,
+        priority: t.priority,
+        dueDate: t.due_date,
+        tags: [],
+      })),
+    })),
+    insights: (insights ?? []).map(i => ({
+      iconName: i.icon_name,
+      title: i.title,
+      body: i.body,
+    })),
+    coaching: (coaching ?? []).map(c => ({
+      type: c.type,
+      text: c.message,
+      age: new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    })),
+    attachments: (attachments ?? []).map(a => ({
+      name: a.name,
+      meta: a.metadata,
+    })),
+  };
+
+  return NextResponse.json(assembled);
 }
 
-// GET /api/projects — list all projects (for sidebar etc.)
-export async function GET() {
-  return NextResponse.json(getAllProjects());
+// PUT /api/projects/[id] — upsert a project (used after generation to save it)
+export async function PUT(req: Request, context: Context) {
+  const { id } = await context.params;
+  const body = await req.json();
+
+  const { data, error } = await supabase
+    .from('projects')
+    .upsert({
+      id,
+      title: body.title,
+      icon: body.icon,
+      description: body.description,
+      deadline: body.deadline ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ id: data.id }, { status: 201 });
 }
 </file>
 
@@ -3924,190 +3709,6 @@ Keep responses focused on project planning, task breakdown, and motivation. Be c
 }
 </file>
 
-<file path="src/components/TaskItem.tsx">
-"use client";
-
-import { Trash2, CalendarDays } from "lucide-react";
-import React from "react";
-import { Task
-  
- } from "@/types/task";
-//design system for the priorities
-const PRIORITY_STYLES = {
-  high: {
-    dot: "bg-red-400",
-    badge: "bg-red-50 text-red-500 border border-red-100",
-    label: "High",
-  },
-  medium: {
-    dot: "bg-amber-400",
-    badge: "bg-amber-50 text-amber-500 border border-amber-100",
-    label: "Medium",
-  },
-  low: {
-    dot: "bg-green-400",
-    badge: "bg-green-50 text-green-500 border border-green-100",
-    label: "Low",
-  },
-};
-
-//tag color palette
-const TAG_COLORS = [
-  "text-yellow-600",
-  "text-lime-600",
-  "text-sky-500",
-  "text-violet-500",
-  "text-pink-500",
-  "text-teal-500",
-  "text-orange-500",
-];
-
-//picking a color for each tag
-function getTagColor(tag: string) {
-  let hash = 0;
-  //here we make the hash for the tag using each of its character values
-  for (let i = 0; i < tag.length; i++) {
-    hash += tag.charCodeAt(i);
-  }
-  //use modulo to assign it to one of the TAG_COLORS, 
-  // now this tag will always get that color bc of its unique hashcode
-  return TAG_COLORS[hash % TAG_COLORS.length];
-}
-
-type TaskItemProps = {
-  task: Task;
-  onToggle: () => void;
-  onDelete: () => void;
-};
-
-
-
-//here we are making a component called TaskItem that receives a task object, a function to toggle it, and a function to delete it 
-// (its called by taskboard)
-export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
-  //get this style task.priority for this task's priority and if that doesn't exist, sue the low priority style instead.
-  const priority = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.low;
-  const hasTags = task.tags && task.tags.length > 0;
-
-  // Due date badge: compute label + urgency style
-  const dueDateBadge = (() => {
-    if (!task.dueDate) return null;
-    const due = new Date(task.dueDate + "T00:00:00");
-    if (isNaN(due.getTime())) return null;
- 
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const dueStart  = new Date(due.getFullYear(),  due.getMonth(),  due.getDate());
-    const diffDays  = Math.round((dueStart.getTime() - todayStart.getTime()) / 86_400_000);
- 
-    let label: string;
-    if (diffDays === 0)       label = "Today";
-    else if (diffDays === 1)  label = "Tomorrow";
-    else if (diffDays === -1) label = "Yesterday";
-    else if (diffDays < 0)    label = `${Math.abs(diffDays)}d overdue`;
-    else if (diffDays < 7)    label = due.toLocaleDateString("en-US", { weekday: "short" });
-    else                      label = due.toLocaleDateString("en-US", { month: "short", day: "numeric" });
- 
-    // Urgency tiers (muted when done)
-    let style: string;
-    if (task.done) {
-      style = "text-gray-300 dark:text-gray-600";
-    } else if (diffDays < 0) {
-      style = "text-red-400 border border-red-100 dark:border-red-800";
-    } else if (diffDays === 0) {
-      style = "text-indigo-500 dark:text-indigo-400";
-    } else if (diffDays <= 2) {
-      style = "text-amber-500";
-    } else {
-      style = "text-gray-400 dark:text-gray-500";
-    }
- 
-    return { label, style };
-  })();
-
-  return (
-    <div className="group flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-      {/* Checkbox — aligned to the top when there are tags */}
-      <button
-        onClick={onToggle}
-        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-          task.done
-            ? "bg-indigo-500 border-indigo-500"
-            : "border-gray-300 dark:border-gray-500 hover:border-indigo-400 dark:hover:border-indigo-500"
-        }`}
-      >
-        {task.done && (
-          <svg width="10" height="8" viewBox="0 0 10 8" fill="none" className="text-white">
-            <path
-              d="M1 4L3.5 6.5L9 1"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-      </button>
-
-      {/* Left: label + tags */}
-      <div className="flex-1 min-w-0">
-        <span
-          className={`text-sm transition-colors ${
-            task.done ? "line-through text-gray-300 dark:text-gray-600" : "text-gray-800 dark:text-gray-100"
-          }`}
-        >
-          {task.label}
-        </span>
-
-        {hasTags && (
-          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-            {task.tags!.map((tag: string, i: number) => (
-              <span key={tag} className="flex items-center gap-1">
-                {i > 0 && <span className="text-gray-300 dark:text-gray-600 text-xs">•</span>}
-                <span className={`text-[12px] font-medium ${task.done ? "text-gray-300 dark:text-gray-600" : getTagColor(tag)}`}>
-                  {tag}
-                </span>
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Right: priority badge + project name + due date */}
-      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        <span
-          className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1 ${task.done
-        ? "bg-gray-50 dark:bg-gray-700 text-gray-300 dark:text-gray-600 border border-gray-100 dark:border-gray-600"
-        : priority.badge
-        }`}
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${task.done ? "bg-gray-200 dark:bg-gray-500" : priority.dot}`} />
-          {priority.label}
-        </span>
-
-        {task.project && (
-          <span className="text-[11px] text-gray-400 dark:text-gray-500">{task.project}</span>
-        )}
-        {dueDateBadge && (
-          <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${dueDateBadge.style}`}>
-            <CalendarDays size={10} />
-            {dueDateBadge.label}
-          </span>
-        )}
-      </div>
-
-      {/* Delete — hover reveal */}
-      <button
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 dark:text-gray-600 hover:text-red-400"
-      >
-        <Trash2 size={14} />
-      </button>
-    </div>
-  );
-}
-</file>
-
 <file path="src/lib/utils/project-utils.ts">
 import type { ProjectDraft, GeneratedPhase } from "@/types/creation";
 import type { Project, Phase } from "@/types/project";
@@ -4151,68 +3752,50 @@ export function draftToProject(draft: ProjectDraft, phases: GeneratedPhase[]): P
 }
 </file>
 
-<file path="src/types/project.ts">
-// Priority lives here canonically and is imported everywhere else.
-// (Previously it was re-typed inline in TaskContext — now there's one source.)
-export type Priority = "high" | "medium" | "low";
+<file path="src/app/api/projects/route.ts">
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
+import type { ProjectDraft } from "@/types/creation";
 
-export type PhaseStatus = "completed" | "in-progress" | "upcoming" | "locked";
+// GET /api/projects — list all projects (for sidebar)
+export async function GET() {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, title, icon, description, deadline, created_at')
+    .order('created_at', { ascending: false });
 
-// PhaseTask is defined in types/task.ts and extended there.
-// We re-export it here so project-related imports stay clean.
-export type { PhaseTask } from "./task";
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-//this is onestep of the project with status, progress, and tasks
-
-export interface Phase {
-  number: number;
-  title: string;
-  status: PhaseStatus;
-  progress: number;
-  tasks: import("./task").PhaseTask[];
+  return NextResponse.json(data);
 }
 
-// Insight.iconName is a string key (e.g. "trending-up") instead of
-// React.ReactNode. The UI layer maps this to an actual icon component.
-// This makes Insight serializable — it can round-trip through JSON
-// and eventually come straight from Supabase.
-export type InsightIconName = "trending-up" | "target" | "lightbulb" | "zap" | "clock";
+// POST /api/projects — create a new project
+export async function POST(request: Request) {
+  try {
+    const body: ProjectDraft = await request.json();
 
-export interface Insight {
-  iconName: InsightIconName;
-  title: string;
-  body: string;
-}
+    const { data, error } = await supabase
+      .from('projects')
+      .insert({
+        title: body.goal,
+        description: body.description ?? null,
+        deadline: body.targetDate ?? null,
+        icon: '🎯',          // default icon, user can change later
+      })
+      .select('id')
+      .single();
 
-// CoachingNote uses a semantic type instead of raw Tailwind class strings.
-// The UI maps type → className. Supabase stores "info", not
-// "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300".
-export type CoachingNoteType = "info" | "success" | "warning";
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
-export interface CoachingNote {
-  type: CoachingNoteType;
-  text: string;
-  age: string;
-}
+    return NextResponse.json({ id: data.id }, { status: 201 });
 
-export interface Attachment {
-  name: string;
-  meta: string;
-}
-
-//this object is whats actually getting stored in our app, its the full thing with phases, insights, attachments ,and coachign notes
-
-export interface Project {
-  id: string;
-  title: string;
-  icon: string;
-  description: string;
-  deadline?: string;
-  progress: number;
-  phases: Phase[];
-  attachments: Attachment[];
-  insights: Insight[];
-  coaching: CoachingNote[];
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 }
 </file>
 
@@ -4436,6 +4019,259 @@ export default function TaskBoard() {
 }
 </file>
 
+<file path="src/components/TaskItem.tsx">
+"use client";
+
+import { Trash2, CalendarDays } from "lucide-react";
+import React from "react";
+import { Task
+  
+ } from "@/types/task";
+//design system for the priorities
+const PRIORITY_STYLES = {
+  high: {
+    dot: "bg-red-400",
+    badge: "bg-red-50 text-red-500 border border-red-100",
+    label: "High",
+  },
+  medium: {
+    dot: "bg-amber-400",
+    badge: "bg-amber-50 text-amber-500 border border-amber-100",
+    label: "Medium",
+  },
+  low: {
+    dot: "bg-green-400",
+    badge: "bg-green-50 text-green-500 border border-green-100",
+    label: "Low",
+  },
+};
+
+//tag color palette
+const TAG_COLORS = [
+  "text-yellow-600",
+  "text-lime-600",
+  "text-sky-500",
+  "text-violet-500",
+  "text-pink-500",
+  "text-teal-500",
+  "text-orange-500",
+];
+
+//picking a color for each tag
+function getTagColor(tag: string) {
+  let hash = 0;
+  //here we make the hash for the tag using each of its character values
+  for (let i = 0; i < tag.length; i++) {
+    hash += tag.charCodeAt(i);
+  }
+  //use modulo to assign it to one of the TAG_COLORS, 
+  // now this tag will always get that color bc of its unique hashcode
+  return TAG_COLORS[hash % TAG_COLORS.length];
+}
+
+type TaskItemProps = {
+  task: Task;
+  onToggle: () => void;
+  onDelete: () => void;
+};
+
+
+
+//here we are making a component called TaskItem that receives a task object, a function to toggle it, and a function to delete it 
+// (its called by taskboard)
+export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
+  //get this style task.priority for this task's priority and if that doesn't exist, sue the low priority style instead.
+  const priority = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.low;
+  const hasTags = task.tags && task.tags.length > 0;
+
+  // Due date badge: compute label + urgency style
+  const dueDateBadge = (() => {
+    if (!task.dueDate) return null;
+    const due = new Date(task.dueDate + "T00:00:00");
+    if (isNaN(due.getTime())) return null;
+ 
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dueStart  = new Date(due.getFullYear(),  due.getMonth(),  due.getDate());
+    const diffDays  = Math.round((dueStart.getTime() - todayStart.getTime()) / 86_400_000);
+ 
+    let label: string;
+    if (diffDays === 0)       label = "Today";
+    else if (diffDays === 1)  label = "Tomorrow";
+    else if (diffDays === -1) label = "Yesterday";
+    else if (diffDays < 0)    label = `${Math.abs(diffDays)}d overdue`;
+    else if (diffDays < 7)    label = due.toLocaleDateString("en-US", { weekday: "short" });
+    else                      label = due.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+ 
+    // Urgency tiers (muted when done)
+    let style: string;
+    if (task.done) {
+      style = "text-gray-300 dark:text-gray-600";
+    } else if (diffDays < 0) {
+      style = "text-red-400 border border-red-100 dark:border-red-800";
+    } else if (diffDays === 0) {
+      style = "text-indigo-500 dark:text-indigo-400";
+    } else if (diffDays <= 2) {
+      style = "text-amber-500";
+    } else {
+      style = "text-gray-400 dark:text-gray-500";
+    }
+ 
+    return { label, style };
+  })();
+
+  return (
+    <div className="group flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+      {/* Checkbox — aligned to the top when there are tags */}
+      <button
+        onClick={onToggle}
+        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+          task.done
+            ? "bg-indigo-500 border-indigo-500"
+            : "border-gray-300 dark:border-gray-500 hover:border-indigo-400 dark:hover:border-indigo-500"
+        }`}
+      >
+        {task.done && (
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none" className="text-white">
+            <path
+              d="M1 4L3.5 6.5L9 1"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </button>
+
+      {/* Left: label + tags OR project name */}
+      <div className="flex-1 min-w-0">
+        <span
+          className={`text-sm transition-colors ${
+            task.done ? "line-through text-gray-300 dark:text-gray-600" : "text-gray-800 dark:text-gray-100"
+          }`}
+        >
+          {task.label}
+        </span>
+
+        {hasTags && (
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {task.tags!.map((tag: string, i: number) => (
+              <span key={tag} className="flex items-center gap-1">
+                {i > 0 && <span className="text-gray-300 dark:text-gray-600 text-xs">•</span>}
+                <span className={`text-[12px] font-medium ${task.done ? "text-gray-300 dark:text-gray-600" : getTagColor(tag)}`}>
+                  {tag}
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {!hasTags && task.project && (
+          <p className={`text-[12px] font-medium mt-0.5 ${task.done ? "text-gray-300 dark:text-gray-600" : "text-indigo-400 dark:text-indigo-500"}`}>
+            {task.project}
+          </p>
+        )}
+      </div>
+
+      {/* Right: priority badge + project name + due date */}
+      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+        <span
+          className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1 ${task.done
+        ? "bg-gray-50 dark:bg-gray-700 text-gray-300 dark:text-gray-600 border border-gray-100 dark:border-gray-600"
+        : priority.badge
+        }`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${task.done ? "bg-gray-200 dark:bg-gray-500" : priority.dot}`} />
+          {priority.label}
+        </span>
+
+        
+        {dueDateBadge && (
+          <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${dueDateBadge.style}`}>
+            <CalendarDays size={10} />
+            {dueDateBadge.label}
+          </span>
+        )}
+      </div>
+
+      {/* Delete — hover reveal */}
+      <button
+        onClick={onDelete}
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 dark:text-gray-600 hover:text-red-400"
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  );
+}
+</file>
+
+<file path="src/types/project.ts">
+// Priority lives here canonically and is imported everywhere else.
+// (Previously it was re-typed inline in TaskContext — now there's one source.)
+export type Priority = "high" | "medium" | "low";
+
+export type PhaseStatus = "completed" | "in-progress" | "upcoming" | "locked";
+
+// PhaseTask is defined in types/task.ts and extended there.
+// We re-export it here so project-related imports stay clean.
+export type { PhaseTask } from "./task";
+
+//this is onestep of the project with status, progress, and tasks
+
+export interface Phase {
+  number: number;
+  title: string;
+  status: PhaseStatus;
+  progress: number;
+  tasks: import("./task").PhaseTask[];
+}
+
+// Insight.iconName is a string key (e.g. "trending-up") instead of
+// React.ReactNode. The UI layer maps this to an actual icon component.
+// This makes Insight serializable — it can round-trip through JSON
+// and eventually come straight from Supabase.
+export type InsightIconName = "trending-up" | "target" | "lightbulb" | "zap" | "clock";
+
+export interface Insight {
+  iconName: InsightIconName;
+  title: string;
+  body: string;
+}
+
+// CoachingNote uses a semantic type instead of raw Tailwind class strings.
+// The UI maps type → className. Supabase stores "info", not
+// "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300".
+export type CoachingNoteType = "encouraging" | "warning" | "reflection";
+
+export interface CoachingNote {
+  type: CoachingNoteType;
+  text: string;
+  age: string;
+}
+
+export interface Attachment {
+  name: string;
+  metadata: Record<string, unknown>
+}
+
+//this object is whats actually getting stored in our app, its the full thing with phases, insights, attachments ,and coachign notes
+
+export interface Project {
+  id: string;
+  title: string;
+  icon: string;
+  description: string;
+  deadline?: string;
+  progress: number;
+  phases: Phase[];
+  attachments: Attachment[];
+  insights: Insight[];
+  coaching: CoachingNote[];
+}
+</file>
+
 <file path="package.json">
 {
   "name": "todolistapp",
@@ -4449,6 +4285,7 @@ export default function TaskBoard() {
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
+    "@supabase/supabase-js": "^2.108.2",
     "@vercel/otel": "^2.1.2",
     "lucide-react": "^0.577.0",
     "next": "^16.2.7",

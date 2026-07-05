@@ -31,7 +31,10 @@ const { id } = useParams<{ id: string }>();
     if (!id) return;
     getProject(id)
       .then(setProject)
-      .catch(() => setError("Failed to load project"))
+      .catch((err) => {
+        console.error("PROJECT FETCH FAILED:", err);
+        setError("Failed to load project");
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -181,13 +184,13 @@ const { id } = useParams<{ id: string }>();
                 {project.phases.map((phase) => {
                   const barColor =
                     phase.status === "completed" ? "bg-green-400" :
-                    phase.status === "in-progress" ? "bg-indigo-500" :
+                    phase.status === "active" ? "bg-indigo-500" :
                     "bg-gray-200 dark:bg-gray-600";
                   return (
                     <div
                       key={phase.number}
                       className={`rounded-xl p-3 border ${
-                        phase.status === "in-progress"
+                        phase.status === "active"
                           ? "border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/50 dark:bg-indigo-900/10"
                           : "border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30"
                       }`}
@@ -240,7 +243,7 @@ const { id } = useParams<{ id: string }>();
               )}
 
               {/* Current phase with task list */}
-              {project.phases.filter((p) => p.status === "in-progress").map((phase) => (
+              {project.phases.filter((p) => p.status === "active").map((phase) => (
                 <div key={phase.number} className="mt-4">
                   <PhaseSection
                     phase={phase}
@@ -293,7 +296,7 @@ const { id } = useParams<{ id: string }>();
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{file.name}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">{file.meta}</p>
+                    {/* <p className="text-xs text-gray-400 dark:text-gray-500">{file.meta}</p> */}
                   </div>
                   <button className="text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400">
                     <MoreVertical size={14} />
