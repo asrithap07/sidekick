@@ -1,33 +1,44 @@
 import { NextResponse } from "next/server";
-import { getAllProjects } from "@/lib/mock/projects";
+import { supabase } from "@/lib/supabase";
 import type { ProjectDraft } from "@/types/creation";
 
-// POST /api/projects — create a new project draft
-/*
-  called when the modal finishes:
-  - receives the draft
-  - generates a mock-<timestamp> ID
-  - returns {id}
-  right now we're not saving the draft content anywhere, we're just handing back an ID
-*/
+// GET /api/projects — list all projects (for sidebar)
+export async function GET() {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, title, icon, description, deadline, created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data);
+}
+
+// POST /api/projects — create a new project
 export async function POST(request: Request) {
   try {
     const body: ProjectDraft = await request.json();
-    console.log("CREATE PROJECT DRAFT:", body);
 
-    // Mock: return a stable-ish ID based on the goal name so navigation works
-    const id = `mock-${Date.now()}`;
+    const { data, error } = await supabase
+      .from('projects')
+      .insert({
+        title: body.goal,
+        description: body.description ?? null,
+        deadline: body.targetDate ?? null,
+        icon: '🎯',          // default icon, user can change later
+      })
+      .select('id')
+      .single();
 
-    return NextResponse.json({ id }, { status: 201 });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ id: data.id }, { status: 201 });
+
   } catch {
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-}
-
-// GET /api/projects — list all projects (for sidebar etc.)
-export async function GET() {
-  return NextResponse.json(getAllProjects());
 }

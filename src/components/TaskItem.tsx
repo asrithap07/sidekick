@@ -122,7 +122,7 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
         )}
       </button>
 
-      {/* Left: label + tags */}
+      {/* Left: label + tags OR project name */}
       <div className="flex-1 min-w-0">
         <span
           className={`text-sm transition-colors ${
@@ -144,6 +144,12 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
             ))}
           </div>
         )}
+
+        {!hasTags && task.project && (
+          <p className={`text-[12px] font-medium mt-0.5 ${task.done ? "text-gray-300 dark:text-gray-600" : "text-indigo-400 dark:text-indigo-500"}`}>
+            {task.project}
+          </p>
+        )}
       </div>
 
       {/* Right: priority badge + project name + due date */}
@@ -158,9 +164,7 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
           {priority.label}
         </span>
 
-        {task.project && (
-          <span className="text-[11px] text-gray-400 dark:text-gray-500">{task.project}</span>
-        )}
+        
         {dueDateBadge && (
           <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${dueDateBadge.style}`}>
             <CalendarDays size={10} />

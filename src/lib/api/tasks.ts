@@ -11,7 +11,7 @@ const MOCK_TASKS: Task[] = [
     id: "1",
     label: "Create UI",
     priority: "high",
-    project: "CS Project",
+    project: null,
     tags: ["career", "coding"],
     done: false,
     dueDate: "2026-06-02",
@@ -36,9 +36,6 @@ const MOCK_TASKS: Task[] = [
   },
 ];
 
-// In-memory store so mutations feel real during development.
-// This goes away entirely when Supabase is wired — the DB is the store.
-let store: Task[] = [...MOCK_TASKS];
 
 export async function fetchTasks(): Promise<Task[]> {
   const res = await fetch("/api/tasks");
