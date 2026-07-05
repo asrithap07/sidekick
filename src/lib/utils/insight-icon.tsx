@@ -22,10 +22,11 @@ const BG_MAP: Record<InsightIconName, string> = {
 
 // Maps the semantic CoachingNote type to Tailwind classes.
 // Supabase stores "info" — the UI layer decides what that looks like.
-export const COACHING_STYLE: Record<"info" | "success" | "warning", { bg: string; text: string }> = {
-  info:    { bg: "bg-indigo-50 dark:bg-indigo-900/20", text: "text-indigo-700 dark:text-indigo-300" },
-  success: { bg: "bg-green-50 dark:bg-green-900/20",   text: "text-green-700 dark:text-green-300" },
+export const COACHING_STYLE: Record<"encouragement" | "warning" | "recommendation" | "reflection", { bg: string; text: string }> = {
+  recommendation:    { bg: "bg-indigo-50 dark:bg-indigo-900/20", text: "text-indigo-700 dark:text-indigo-300" },
+  encouragement: { bg: "bg-green-50 dark:bg-green-900/20",   text: "text-green-700 dark:text-green-300" },
   warning: { bg: "bg-amber-50 dark:bg-amber-900/20",   text: "text-amber-700 dark:text-amber-300" },
+  reflection: {bg: "bg-yellow-50 dark:bg-yellow-900/20", text: "text-yellow-700 dark:text-yellow-300"}
 };
 
 export function InsightIcon({ iconName }: { iconName: InsightIconName }) {

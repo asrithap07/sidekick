@@ -43,10 +43,10 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-neutral-900 shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+      <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-neutral-900 shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden animate-fade-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-0">
           <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">

@@ -2,145 +2,122 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Sparkles, Plus, Info, Focus, Flame, CheckCircle2,
-  Clock, TrendingUp, Lightbulb, ChevronRight, CalendarDays,
-  Zap, Target
+  Clock, TrendingUp, Lightbulb, Target
 } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
-import { Task } from "@/types/task";
 import TaskItem from "@/components/TaskItem";
 import AddTaskModal from "@/components/AddTaskModal";
 import { useAIAssistant } from "@/context/AIAssistantContext";
 import { getTaskStats } from "@/lib/utils/task-utils";
-import {getTaskInsights} from "@/lib/utils/task-insights"
+import { getTaskInsights } from "@/lib/utils/task-insights";
 import { getGreeting } from "@/lib/utils/date-utils";
+import { ink, inkBody, inkMuted, inkFaint, borderTint, hoverTint, trackTint, inkHover, inkMutedHover, surfacePanel, aiAssistBtn } from "@/lib/ui/tint";
+import { typeDisplay, typeHeadline, typeBody } from "@/lib/ui/type";
 
-// Static for now — wire to Supabase/localStorage later
+// Static for now — wire to Supabase/localStorage later.
+// These render as plain inline metadata below, not inside colored cards,
+// specifically so they don't read as more "real-time verified" than they are.
 const STREAK = 7;
 const MOMENTUM = "+15%";
 
 export default function TaskBoard() {
   const [isModalOpen, setModalOpen] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const { tasks, addTask, toggleDone, deleteTask, finishAll } = useTasks();
   const { togglePanel, setPageContext } = useAIAssistant();
 
-  const stats = useMemo(
-  () => getTaskStats(tasks),
-  [tasks]);
+  const stats = useMemo(() => getTaskStats(tasks), [tasks]);
+  const insights = useMemo(() => getTaskInsights(tasks, stats), [tasks, stats]);
+  const allDone = tasks.length > 0 && tasks.every((t) => t.done);
 
-  const insights = useMemo(
-  () => getTaskInsights(tasks, stats),
-  [tasks, stats]);
-
-  // Set page context for AI assistant
   useEffect(() => {
     setPageContext({ page: "today", tasks, stats, streak: STREAK });
   }, [tasks, stats, setPageContext]);
 
   return (
     <div className="flex h-full gap-3 overflow-hidden">
-      {/* ── Main board ── */}
-      <div className="flex flex-col flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 overflow-hidden">
+      <div className={`flex flex-col flex-1 min-w-0 ${surfacePanel} p-6 overflow-hidden`}>
 
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 leading-tight">
+            <h1 className={`${typeDisplay} ${ink}`}>
               {getGreeting()}, Pristia!
             </h1>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className={`${typeBody} ${inkMuted} mt-1`}>
               What do you plan to do today?
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <span className="text-lg">😎🐼👾</span>
-            <div className="text-right">
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-200">Odama Studio</p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500">⬆ 1,354</p>
+          {/* Workspace indicator — dropped the unlabeled "⬆ 1,354" figure and
+              emoji cluster from the previous version; a number with no stated
+              unit or meaning isn't a stat, it's decoration wearing a stat's
+              clothes. An avatar + name is honest about what this actually is. */}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+              OS
             </div>
+            <span className={`text-xs font-medium ${inkBody}`}>Odama Studio</span>
           </div>
         </div>
 
-        {/* ── Stats row ── */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          {/* Streak */}
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/30">
-            <span className="text-xl">🔥</span>
-            <div>
-              <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none">{STREAK}</p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Day streak</p>
-            </div>
-          </div>
+        {/* Streak — the one number worth spending emphasis on for a "Today"
+            view, given its whole job is motivation. Everything else rides in
+            the flat metadata row below at normal weight, so this doesn't turn
+            into four identical boxes fighting for the same attention. */}
+        <div className="flex items-baseline gap-2 mb-1">
+          <Flame size={18} className="text-orange-500" />
+          <span className={`text-xl font-semibold tabular-nums ${ink}`}>{STREAK}</span>
+          <span className={`text-sm ${inkMuted}`}>day streak</span>
+        </div>
 
-          {/* Completed */}
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/30">
-            <CheckCircle2 size={18} className="text-green-500 shrink-0" />
-            <div>
-              <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none">{stats.pct}%</p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{stats.done}/{stats.total} done</p>
-            </div>
+        {/* Secondary metadata — flat row, dividers instead of cards */}
+        <div className={`flex items-center gap-5 py-3 border-t border-b ${borderTint} mb-6 flex-wrap gap-y-2`}>
+          <div className={`flex items-center gap-1.5 text-xs ${inkMuted}`}>
+            <CheckCircle2 size={13} className="text-green-500" />
+            {stats.pct}% complete
+            <span className={inkFaint}>· {stats.done}/{stats.total}</span>
           </div>
-
-          {/* Overdue */}
-          <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${
-            stats.overdue > 0
-              ? "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30"
-              : "bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-700"
-          }`}>
-            <Clock size={18} className={stats.overdue > 0 ? "text-red-400 shrink-0" : "text-gray-300 dark:text-gray-600 shrink-0"} />
-            <div>
-              <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none">{stats.overdue}</p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Overdue</p>
-            </div>
+          <div className={`w-px h-4 ${trackTint}`} />
+          <div className={`flex items-center gap-1.5 text-xs ${stats.overdue > 0 ? "text-red-500 dark:text-red-400" : inkMuted}`}>
+            <Clock size={13} />
+            {stats.overdue} overdue
           </div>
-
-          {/* Momentum */}
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
-            <TrendingUp size={18} className="text-indigo-500 shrink-0" />
-            <div>
-              <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-none">{MOMENTUM}</p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">vs last week</p>
-            </div>
+          <div className={`w-px h-4 ${trackTint}`} />
+          <div className={`flex items-center gap-1.5 text-xs ${inkMuted}`}>
+            <TrendingUp size={13} className="text-indigo-500" />
+            {MOMENTUM} vs last week
           </div>
         </div>
 
-        {/* ── Daily Brief ── */}
-        <div className="mb-4 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 bg-gradient-to-r from-indigo-50 via-white to-purple-50 dark:from-indigo-900/20 dark:via-gray-800 dark:to-purple-900/20 p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <p className="font-semibold text-gray-900 dark:text-white text-sm">Daily Brief</p>
-                <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-medium">
-                  HIGH IMPACT
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                {stats.overdue > 0
-                  ? <>You have <span className="font-semibold">{stats.overdue} overdue task{stats.overdue > 1 ? "s" : ""}</span>. Tackling your highest-priority item first would clear your biggest bottleneck.</>
-                  : <>You're off to a great start! <span className="font-semibold">{stats.done} task{stats.done !== 1 ? "s" : ""} done</span>. Keep the momentum going.</>
-                }
-              </p>
-              <button
-                onClick={() => togglePanel()}
-                className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-600 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
-              >
-                <Sparkles size={12} />
-                View AI Plan
-              </button>
-            </div>
+        {/* ── Today's plan — typographic statement, not a gradient card ── */}
+        <section className="mb-6">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Sparkles size={14} className="text-indigo-500 shrink-0" />
+            <h2 className={`${typeHeadline} ${ink}`}>Today&apos;s plan</h2>
           </div>
-        </div>
+          <p className={`${typeBody} ${inkBody} max-w-prose`}>
+            {stats.overdue > 0
+              ? <>You have <span className={`font-semibold ${ink}`}>{stats.overdue} overdue task{stats.overdue > 1 ? "s" : ""}</span>. Tackling the highest-priority one first clears your biggest bottleneck.</>
+              : <>You're off to a great start — <span className={`font-semibold ${ink}`}>{stats.done} task{stats.done !== 1 ? "s" : ""} done</span>. Keep the momentum going.</>
+            }
+          </p>
+          <button
+            onClick={() => togglePanel()}
+            className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+          >
+            <Sparkles size={12} />
+            View AI plan
+          </button>
+        </section>
 
-        {/* ── Insights strip (only shown when there are insights) ── */}
+        {/* ── Insights — flat list, no per-item box ── */}
         {insights.length > 0 && (
-          <div className="mb-4 flex flex-col gap-1.5">
+          <div className={`mb-6 flex flex-col divide-y ${borderTint}`}>
             {insights.map((ins, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+              <div key={i} className="flex items-center gap-2 py-2">
                 <span className={ins.color}>{ins.icon}</span>
-                <p className="text-xs text-gray-600 dark:text-gray-300 flex-1">{ins.text}</p>
-                <Lightbulb size={12} className="text-gray-300 dark:text-gray-600" />
+                <p className={`text-xs ${inkBody} flex-1`}>{ins.text}</p>
+                <Lightbulb size={12} className={inkFaint} />
               </div>
             ))}
           </div>
@@ -148,15 +125,15 @@ export default function TaskBoard() {
 
         {/* ── Today's Tasks header ── */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Today's Tasks</h2>
+          <h2 className={`${typeHeadline} ${ink}`}>Today&apos;s Tasks</h2>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${borderTint} text-xs ${inkMuted} ${hoverTint} transition-colors`}>
               <Focus size={13} />
               Focus Mode
             </button>
             <button
               onClick={() => togglePanel()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+              className={aiAssistBtn}
             >
               <Sparkles size={13} />
               AI Assist
@@ -164,8 +141,21 @@ export default function TaskBoard() {
           </div>
         </div>
 
+        {/* All done celebration */}
+        {allDone && !showCelebration && (
+          <div className="mb-4 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/30 animate-fade-up">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🎉</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">All done for today!</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">That&rsquo;s a wrap. Your streak is safe — go enjoy the rest of your day.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Task list */}
-        <div className="flex flex-col gap-2 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-2 flex-1 overflow-y-auto animate-stagger">
           {tasks.map((task) => (
             <TaskItem
               key={task.id}
@@ -175,9 +165,9 @@ export default function TaskBoard() {
             />
           ))}
           {tasks.length === 0 && (
-            <div className="flex flex-col items-center justify-center flex-1 gap-2 text-gray-300 dark:text-gray-600 py-10">
+            <div className={`flex flex-col items-center justify-center flex-1 gap-2 ${inkFaint} py-10`}>
               <Target size={36} strokeWidth={1.2} />
-              <p className="text-sm text-center">No tasks yet — add one to get started.</p>
+              <p className="text-sm text-center">Your day is a clean slate. What&rsquo;s the first thing you want to get done?</p>
             </div>
           )}
         </div>
@@ -192,12 +182,12 @@ export default function TaskBoard() {
           </button>
           <button
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs ${inkMuted} ${inkHover} ${hoverTint} rounded-lg transition-colors`}
           >
             <Plus size={13} />
             Add Task
           </button>
-          <button className="ml-auto text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400">
+          <button className={`ml-auto ${inkFaint} ${inkMutedHover} transition-colors`}>
             <Info size={14} />
           </button>
         </div>

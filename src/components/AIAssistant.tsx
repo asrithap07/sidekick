@@ -223,6 +223,7 @@ export default function AIAssistant({ onClose, pageContext }: AIAssistantProps) 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasMessages = messages.length > 0;
@@ -294,6 +295,7 @@ Keep responses focused on project planning, task breakdown, and motivation. Be c
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+    setLoadingMessage("Thinking…");
 
     const systemPrompt = buildSystemPrompt();
 
@@ -324,6 +326,7 @@ Keep responses focused on project planning, task breakdown, and motivation. Be c
       ]);
     } finally {
       setLoading(false);
+      setLoadingMessage("");
     }
   }
 
@@ -335,7 +338,7 @@ Keep responses focused on project planning, task breakdown, and motivation. Be c
   }
 
   return (
-    <div className="w-80 shrink-0 flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+    <div className="w-80 shrink-0 flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden animate-slide-in-right">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
         <div className="flex items-center gap-2">
@@ -388,10 +391,10 @@ Keep responses focused on project planning, task breakdown, and motivation. Be c
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-gray-100 dark:border-gray-700 text-left text-xs text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-200 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group"
+                  className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-gray-100 dark:border-gray-700 text-left text-xs text-[oklch(0.5_0.02_275)] dark:text-[oklch(0.68_0.02_275)] hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-200 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group"
                 >
                   {s}
-                  <ChevronRight size={12} className="text-gray-300 group-hover:text-indigo-400 shrink-0" />
+                  <ChevronRight size={12} className="text-[oklch(0.64_0.016_275)] dark:text-[oklch(0.52_0.02_275)] group-hover:text-indigo-400 shrink-0 animate-chevron-slide" />
                 </button>
               ))}
             </div>
@@ -408,10 +411,11 @@ Keep responses focused on project planning, task breakdown, and motivation. Be c
                 </div>
                 <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
                   <div className="flex gap-1 items-center h-4">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-loading-dot" style={{ animationDelay: "0ms" }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-loading-dot" style={{ animationDelay: "150ms" }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-loading-dot" style={{ animationDelay: "300ms" }} />
                   </div>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2">{loadingMessage}</p>
                 </div>
               </div>
             )}

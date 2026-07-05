@@ -33,7 +33,7 @@ export interface Insight {
 // CoachingNote uses a semantic type instead of raw Tailwind class strings.
 // The UI maps type → className. Supabase stores "info", not
 // "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300".
-export type CoachingNoteType = "encouraging" | "warning" | "reflection";
+export type CoachingNoteType = "encouragement" | "warning" | "reflection" | "recommendation";
 
 export interface CoachingNote {
   type: CoachingNoteType;

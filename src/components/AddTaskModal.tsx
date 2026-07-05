@@ -36,12 +36,12 @@ export default function AddTaskModal({ onClose, onAdd }: AddTaskModalProps) {
   return (
     //outer container (the overlay)
     <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 animate-fade-in"
       onClick={onClose} //clicking anywhere on the overlay will close the modal
     >
       {/* inner container (the modal box) */}
       <div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 w-full max-w-md mx-4"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 w-full max-w-md mx-4 animate-fade-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header shows the title add new task*/}
@@ -60,7 +60,7 @@ export default function AddTaskModal({ onClose, onAdd }: AddTaskModalProps) {
             <input
               autoFocus
               type="text"
-              placeholder="e.g. Finish the report..."
+              placeholder="e.g. Finish the report… or whatever's on your mind"
               //the inputs value comes from React state, meaning the text inside this input should always equal the label state
               value={label}
               //on every change of the input, react calls setLbael and re-renders the input 
@@ -105,7 +105,7 @@ export default function AddTaskModal({ onClose, onAdd }: AddTaskModalProps) {
             {/* user can store comma-seperated labels thats. stores in tagsInput state */}
             <input
               type="text"
-              placeholder="e.g. career, coding, life"
+              placeholder="e.g. career, creative, health"
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"

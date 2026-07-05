@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-05T22:59:00.000Z",
+  "title": "Design System: Sidekick",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Coach Indigo",
+        "canonical": "oklch(0.585 0.217 277)",
+        "tonalRamp": [
+          "oklch(0.18 0.08 277)",
+          "oklch(0.28 0.12 277)",
+          "oklch(0.38 0.16 277)",
+          "oklch(0.48 0.19 277)",
+          "oklch(0.585 0.217 277)",
+          "oklch(0.68 0.18 277)",
+          "oklch(0.78 0.12 277)",
+          "oklch(0.93 0.04 277)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(0.24 0.02 275)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 275)",
+          "oklch(0.24 0.02 275)",
+          "oklch(0.34 0.018 275)",
+          "oklch(0.5 0.02 275)",
+          "oklch(0.64 0.016 275)",
+          "oklch(0.78 0.012 275)",
+          "oklch(0.91 0.01 275)",
+          "oklch(0.97 0.006 275)"
+        ]
+      },
+      "shell-bg": {
+        "role": "neutral",
+        "displayName": "Shell Mist",
+        "canonical": "oklch(0.967 0.003 264)",
+        "tonalRamp": [
+          "oklch(0.15 0.01 264)",
+          "oklch(0.21 0.015 264)",
+          "oklch(0.28 0.015 264)",
+          "oklch(0.38 0.01 264)",
+          "oklch(0.55 0.008 264)",
+          "oklch(0.75 0.005 264)",
+          "oklch(0.9 0.004 264)",
+          "oklch(0.967 0.003 264)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface White",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.15 0.01 264)",
+          "oklch(0.21 0.015 264)",
+          "oklch(0.28 0.015 264)",
+          "oklch(0.38 0.01 264)",
+          "oklch(0.55 0.008 264)",
+          "oklch(0.75 0.005 264)",
+          "oklch(0.9 0.004 264)",
+          "oklch(1 0 0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page greetings and primary screen titles."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section titles within a panel."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Task labels, plan prose, AI messages."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels and sidebar section headers."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-sm",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "Resting shadow on sidebar and main content panels."
+      },
+      {
+        "name": "modal-lg",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Modal dialog lift over scrim."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default transition for colors, opacity, and layout-adjacent state."
+      },
+      {
+        "name": "duration-fast",
+        "value": "150ms",
+        "purpose": "Hover and focus feedback on buttons and nav items."
+      },
+      {
+        "name": "duration-panel",
+        "value": "300ms",
+        "purpose": "Sidebar collapse and theme toggle transitions."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main call-to-action — add task, submit forms, send AI messages.",
+      "html": "<button class=\"ds-btn-primary\">Add task</button>",
+      "css": ".ds-btn-primary { background: oklch(0.585 0.217 277); color: #fff; padding: 8px 16px; font-size: 0.875rem; font-weight: 500; border: none; border-radius: 8px; cursor: pointer; transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1); font-family: system-ui, -apple-system, sans-serif; } .ds-btn-primary:hover { background: oklch(0.511 0.231 277); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.78 0.12 277); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary actions — cancel, dismiss, low-emphasis controls.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: oklch(0.5 0.02 275); padding: 8px 16px; font-size: 0.875rem; font-weight: 400; border: none; border-radius: 8px; cursor: pointer; transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1); font-family: system-ui, -apple-system, sans-serif; } .ds-btn-ghost:hover { background: oklch(0.97 0.006 275); color: oklch(0.34 0.018 275); } .ds-btn-ghost:focus-visible { outline: 2px solid oklch(0.78 0.12 277); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Standard form field for task names, labels, and AI chat input.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"e.g. Finish the report…\" />",
+      "css": ".ds-input { width: 100%; background: #fff; color: oklch(0.24 0.02 275); border: 1px solid oklch(0.91 0.01 275); border-radius: 8px; padding: 8px 12px; font-size: 0.875rem; font-family: system-ui, -apple-system, sans-serif; outline: none; transition: border-color 150ms, box-shadow 150ms; box-sizing: border-box; } .ds-input::placeholder { color: oklch(0.64 0.016 275); } .ds-input:focus { border-color: oklch(0.585 0.217 277); box-shadow: 0 0 0 2px oklch(0.78 0.12 277 / 0.45); }"
+    },
+    {
+      "name": "Nav Item Active",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Active sidebar navigation state for Today, Upcoming, Labels.",
+      "html": "<a class=\"ds-nav-active\" href=\"#\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg> Today</a>",
+      "css": ".ds-nav-active { display: inline-flex; align-items: center; gap: 10px; background: oklch(0.93 0.04 277); color: oklch(0.585 0.217 277); padding: 8px 10px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; text-decoration: none; font-family: system-ui, -apple-system, sans-serif; transition: background 150ms; } .ds-nav-active:hover { background: oklch(0.9 0.05 277); }"
+    },
+    {
+      "name": "Priority Chip",
+      "kind": "chip",
+      "refersTo": "button-ghost",
+      "description": "Priority badge on task rows — semantic color, not brand accent.",
+      "html": "<span class=\"ds-chip-priority\"><span class=\"ds-chip-dot\"></span>High</span>",
+      "css": ".ds-chip-priority { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 2px 10px; border-radius: 9999px; background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; font-family: system-ui, -apple-system, sans-serif; } .ds-chip-dot { width: 6px; height: 6px; border-radius: 9999px; background: #f87171; }"
+    },
+    {
+      "name": "Content Panel",
+      "kind": "card",
+      "refersTo": "surface-panel",
+      "description": "Main app surface — sidebar, Today board, AI panel shell.",
+      "html": "<div class=\"ds-panel\"><p class=\"ds-panel-title\">Today's Tasks</p><p class=\"ds-panel-body\">Your task list lives here.</p></div>",
+      "css": ".ds-panel { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); font-family: system-ui, -apple-system, sans-serif; } .ds-panel-title { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.025em; color: oklch(0.24 0.02 275); margin: 0 0 8px; } .ds-panel-body { font-size: 0.875rem; color: oklch(0.34 0.018 275); margin: 0; line-height: 1.5; }"
+    },
+    {
+      "name": "AI Sidekick Header",
+      "kind": "custom",
+      "refersTo": "surface-panel",
+      "description": "Embedded coach panel header — indigo icon tile, not floating chatbot chrome.",
+      "html": "<div class=\"ds-ai-header\"><div class=\"ds-ai-icon\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#fff\" stroke-width=\"2\"><path d=\"M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z\"/></svg></div><div><p class=\"ds-ai-title\">AI Sidekick</p><p class=\"ds-ai-sub\">Ready to help</p></div></div>",
+      "css": ".ds-ai-header { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid oklch(0.91 0.01 275); font-family: system-ui, -apple-system, sans-serif; } .ds-ai-icon { width: 28px; height: 28px; border-radius: 8px; background: oklch(0.585 0.217 277); display: flex; align-items: center; justify-content: center; flex-shrink: 0; } .ds-ai-title { font-size: 0.875rem; font-weight: 600; color: oklch(0.24 0.02 275); margin: 0; line-height: 1; } .ds-ai-sub { font-size: 10px; color: oklch(0.585 0.217 277); margin: 2px 0 0; }"
+    },
+    {
+      "name": "Task Row",
+      "kind": "custom",
+      "refersTo": "surface-panel",
+      "description": "Interactive task list item with checkbox, label, and metadata.",
+      "html": "<div class=\"ds-task-row\"><button class=\"ds-task-check\" aria-label=\"Complete task\"></button><span class=\"ds-task-label\">Finish quarterly report</span><span class=\"ds-task-meta\">Today</span></div>",
+      "css": ".ds-task-row { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; transition: background 150ms; font-family: system-ui, -apple-system, sans-serif; } .ds-task-row:hover { background: oklch(0.97 0.006 275); } .ds-task-check { width: 20px; height: 20px; border-radius: 6px; border: 2px solid oklch(0.64 0.016 275); background: transparent; cursor: pointer; flex-shrink: 0; } .ds-task-check:hover { border-color: oklch(0.585 0.217 277); } .ds-task-label { flex: 1; font-size: 0.875rem; color: oklch(0.24 0.02 275); } .ds-task-meta { font-size: 11px; font-weight: 500; color: oklch(0.585 0.217 277); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Supportive Workbench",
+    "overview": "Sidekick is a daily task driver that should feel like polished native software with a warm coach sitting beside it — Arc/Raycast craft applied to personal productivity. Surfaces are calm and legible: white panels on a soft gray shell, indigo as the single confident accent, and typography that carries encouragement through hierarchy rather than decoration. The AI sidekick lives inside the workflow (Today, projects, planning), not as a bolt-on marketing widget.\n\nThis system explicitly rejects generic SaaS slop, AI gimmick chrome, overbusy productivity dashboards, and corporate admin clutter. Warmth comes from copy, spacing, and considered micro-interactions, not from gradient cards or metric hero templates.",
+    "keyCharacteristics": [
+      "Restrained color strategy: tinted indigo neutrals + one accent used deliberately",
+      "Rounded floating panels (16px) on a padded shell — not nested card grids",
+      "Flat metadata rows and dividers instead of identical stat boxes",
+      "Indigo reserved for primary actions, active nav, checkboxes, and AI affordances",
+      "Light and dark themes with matched surface hierarchy",
+      "OKLCH tinted neutrals (hue ~275) for text and hairlines — not stock achromatic grays"
+    ],
+    "rules": [
+      {
+        "name": "The One Accent Rule",
+        "body": "Indigo is the brand voice. It appears on primary actions, active navigation, completed checkboxes, AI affordances, and progress fills. It does not appear on every icon, every section header, or every background tint. If a screen feels purple, you've overspent the accent.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tinted Neutral Rule",
+        "body": "Text and borders use the OKLCH ramp in src/lib/ui/tint.ts (hue ~275, chroma 0.01–0.02). Do not reach for Tailwind's achromatic gray-* for body copy on new surfaces — it reads generic and breaks brand cohesion.",
+        "section": "colors"
+      },
+      {
+        "name": "The Honest Weight Rule",
+        "body": "One number on a screen may earn display emphasis (e.g., streak count). Secondary metadata stays at label weight in a flat row — never four identical stat boxes competing for attention.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest. Shadows appear only on modals and segmented-control selection — never as default card decoration. Nested cards are prohibited.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use the OKLCH tinted neutral ramp from tint.ts for new text and borders on primary surfaces.",
+      "Do keep the shell → panel → content hierarchy: padded gray shell, floating white panels, flat lists inside.",
+      "Do embed AI coaching in context (Today insights, project phases, inline plan copy) before opening the side panel.",
+      "Do use indigo sparingly for actions and state — one accent, many tinted neutrals.",
+      "Do show only verified data; placeholder stats must be labeled or removed.",
+      "Do honor prefers-reduced-motion on any new animations."
+    ],
+    "donts": [
+      "Don't use generic SaaS landing-page slop: gradient heroes, big metric cards, eyebrow kickers on every section.",
+      "Don't ship AI gimmick UI: bolt-on chatbot chrome, purple gradients, sparkle overload divorced from the task workflow.",
+      "Don't build overbusy productivity dashboards: dashboard sprawl, fake stats, gamification theater.",
+      "Don't default to corporate admin UI: dense gray tables and enterprise clutter as the daily surface.",
+      "Don't use side-stripe borders (border-left > 1px) as colored accents on cards or list items.",
+      "Don't nest cards inside cards — one panel depth is enough.",
+      "Don't use gradient text (background-clip: text) for headings or labels.",
+      "Don't add identical icon + heading + text card grids for features or insights.",
+      "Don't reach for cream/sand/beige warm-neutral body backgrounds — warmth lives in accent, copy, and craft."
+    ]
+  }
+}

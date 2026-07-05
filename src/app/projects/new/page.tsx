@@ -1,14 +1,5 @@
 "use client";
 
-// Flow:
-// 1. Modal POSTs draft to /api/projects → gets back { id }
-// 2. Modal navigates here: /projects/new?status=generating&id=mock-123
-// 3. This page runs generateProjectPlan(), saves result, then router.replace(`/projects/${id}`)
-// 4. The permanent project page at /projects/[projectId] fetches by ID
-//
-// ProjectCreationContext is gone. The draft doesn't need to survive
-// navigation — the ID is in the URL and the data lives in the API.
-
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Sparkles, ChevronRight } from "lucide-react";
@@ -18,6 +9,19 @@ import { generateProjectPlan, saveProject } from "@/lib/api/projects";
 import { draftToProject } from "@/lib/utils/project-utils";
 import type { Project } from "@/types/project";
 import type { ProjectDraft } from "@/types/creation";
+import {
+  ink,
+  inkBody,
+  inkMuted,
+  inkFaint,
+  borderTint,
+  trackTint,
+  hoverTint,
+  inkHover,
+  surfacePanel,
+  aiAssistBtn,
+} from "@/lib/ui/tint";
+import { typeDisplay, typeHeadline, typeBody } from "@/lib/ui/type";
 
 const GENERATING_MESSAGES = [
   "Analyzing your goal…",
@@ -38,83 +42,60 @@ function GeneratingSpinner() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center py-8 gap-5">
-      {/* Spinner ring */}
+    <div className="flex flex-col items-center justify-center py-8 gap-6 w-full">
       <div className="relative w-12 h-12">
         <svg
-          className="animate-spin w-12 h-12"
+          className="motion-reduce:animate-none animate-spin w-12 h-12 text-indigo-500"
           viewBox="0 0 48 48"
           fill="none"
           style={{ animationDuration: "0.9s" }}
+          aria-hidden
         >
           <circle
             cx="24"
             cy="24"
             r="20"
-            stroke="rgba(108,99,255,0.15)"
+            stroke="currentColor"
+            strokeOpacity="0.15"
             strokeWidth="3"
           />
           <path
             d="M24 4a20 20 0 0 1 20 20"
-            stroke="#6c63ff"
+            stroke="currentColor"
             strokeWidth="3"
             strokeLinecap="round"
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path
-              d="M9 2l1.5 4.5L15 8l-4.5 1.5L9 16 7.5 9.5 3 8l4.5-1.5L9 2z"
-              fill="#6c63ff"
-              opacity="0.8"
-            />
-          </svg>
+          <Sparkles size={18} className="text-indigo-500 opacity-80" aria-hidden />
         </div>
       </div>
 
-      {/* Animated message */}
-      <div className="text-center">
-        <p
-          key={msgIndex}
-          className="text-sm text-neutral-600 dark:text-neutral-400 transition-all"
-          style={{ animation: "fadeUp 0.3s ease" }}
-        >
-          {GENERATING_MESSAGES[msgIndex]}
-        </p>
-      </div>
+      <p key={msgIndex} className={`${typeBody} ${inkMuted} text-center`}>
+        {GENERATING_MESSAGES[msgIndex]}
+      </p>
 
-      {/* Phase skeleton preview */}
-      <div className="w-full space-y-2 mt-2">
+      <div className={`w-full flex flex-col divide-y ${borderTint} mt-2`}>
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className="flex items-center gap-3 rounded-xl border border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50 px-4 py-3"
-            style={{ opacity: msgIndex > i ? 1 : 0.3, transition: "opacity 0.4s ease" }}
+            className="flex items-center gap-3 py-3 motion-reduce:transition-none transition-opacity duration-300"
+            style={{ opacity: msgIndex > i ? 1 : 0.35 }}
           >
-            <div
-              className="w-7 h-7 rounded-full flex-shrink-0"
-              style={{ background: "rgba(108,99,255,0.12)" }}
-            />
+            <div className={`w-7 h-7 rounded-full shrink-0 bg-indigo-500/10`} />
             <div className="flex-1 space-y-1.5">
               <div
-                className="h-2.5 rounded-full bg-neutral-200 dark:bg-neutral-700"
+                className={`h-2.5 rounded-full ${trackTint}`}
                 style={{ width: `${55 + i * 10}%` }}
               />
               <div
-                className="h-2 rounded-full bg-neutral-100 dark:bg-neutral-700/50"
+                className={`h-2 rounded-full ${trackTint} opacity-70`}
                 style={{ width: `${35 + i * 5}%` }}
               />
             </div>
           </div>
         ))}
       </div>
-
-      <style>{`
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }
@@ -132,7 +113,6 @@ export default function NewProjectPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [checkedTasks, setCheckedTasks] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("Overview");
-  const [insightsPanelOpen, setInsightsPanelOpen] = useState(false);
 
   const tabs = ["Overview", "Tasks", "Files"];
 
@@ -141,8 +121,6 @@ export default function NewProjectPage() {
 
     async function generate() {
       try {
-        // In production: the draft would be fetched from the DB by projectId.
-        // For now we use an empty draft — the mock plan doesn't use draft contents.
         const mockDraft: ProjectDraft = {
           goal: "My Project",
           description: "",
@@ -153,7 +131,6 @@ export default function NewProjectPage() {
         const phases = await generateProjectPlan(mockDraft);
         const newProject = draftToProject(mockDraft, phases);
 
-        // Save the generated project to the mock store so the project page can find it
         if (projectId) {
           await saveProject(projectId, newProject);
         }
@@ -161,7 +138,6 @@ export default function NewProjectPage() {
         setProject(newProject);
         setStatus("ready");
 
-        // Navigate to the permanent project page
         if (projectId) {
           router.replace(`/projects/${projectId}`);
         }
@@ -171,8 +147,7 @@ export default function NewProjectPage() {
     }
 
     generate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally run once on mount
+  }, [isGenerating, projectId, router]);
 
   function toggleTask(id: string) {
     setCheckedTasks((prev) => {
@@ -185,11 +160,11 @@ export default function NewProjectPage() {
   if (status === "generating") {
     return (
       <div className="flex h-full">
-        <div className="flex flex-col flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100 dark:border-gray-700 text-xs text-gray-400 dark:text-gray-500">
+        <div className={`flex flex-col flex-1 min-w-0 ${surfacePanel} overflow-hidden`}>
+          <div className={`flex items-center gap-2 px-6 py-3 border-b ${borderTint} text-xs ${inkMuted}`}>
             <span>Projects</span>
             <ChevronRight size={12} />
-            <span className="text-gray-600 dark:text-gray-300 font-medium">New project</span>
+            <span className={`${inkBody} font-medium`}>New project</span>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center px-8 max-w-md mx-auto w-full">
             <GeneratingSpinner />
@@ -202,8 +177,13 @@ export default function NewProjectPage() {
   if (status === "error") {
     return (
       <div className="flex h-full items-center justify-center flex-col gap-3">
-        <p className="text-sm text-red-500">Something went wrong generating your plan.</p>
-        <button onClick={() => router.push("/")} className="text-xs text-indigo-500 hover:underline">
+        <p className={`${typeBody} text-red-500 dark:text-red-400`}>
+          Something went wrong generating your plan.
+        </p>
+        <button
+          onClick={() => router.push("/")}
+          className={`${typeBody} text-indigo-500 hover:underline`}
+        >
           Go back
         </button>
       </div>
@@ -213,7 +193,7 @@ export default function NewProjectPage() {
   if (!project) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-gray-400">No project data found.</p>
+        <p className={`${typeBody} ${inkMuted}`}>No project data found.</p>
       </div>
     );
   }
@@ -224,41 +204,41 @@ export default function NewProjectPage() {
 
   return (
     <div className="flex h-full gap-3 overflow-hidden">
-      <div className="flex flex-col flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
-          <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+      <div className={`flex flex-col flex-1 min-w-0 ${surfacePanel} overflow-hidden`}>
+        <div className={`flex items-center justify-between px-6 py-3 border-b ${borderTint} shrink-0`}>
+          <div className={`flex items-center gap-2 text-xs ${inkMuted}`}>
             <span>Projects</span>
             <ChevronRight size={12} />
-            <span className="text-gray-600 dark:text-gray-300 font-medium">{project.title}</span>
+            <span className={`${inkBody} font-medium`}>{project.title}</span>
           </div>
-          <button
-            onClick={() => setInsightsPanelOpen((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
-          >
+          <button className={aiAssistBtn}>
             <Sparkles size={13} />
             AI Assist
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="mb-4">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{project.title}</h1>
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="mb-5">
+            <h1 className={`${typeDisplay} ${ink}`}>{project.title}</h1>
             {project.description && (
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{project.description}</p>
+              <p className={`${typeBody} ${inkMuted} mt-1 max-w-prose`}>{project.description}</p>
             )}
           </div>
 
-          <div className="flex items-center gap-5 py-3 border-t border-b border-gray-100 dark:border-gray-700 mb-5">
+          <div className={`flex items-center gap-5 py-3 border-t border-b ${borderTint} mb-6 flex-wrap gap-y-2`}>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400 dark:text-gray-500">Progress</span>
-              <div className="w-24 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${overallProgress}%` }} />
+              <span className={`text-xs ${inkMuted}`}>Progress</span>
+              <div className={`w-24 h-1.5 rounded-full ${trackTint} overflow-hidden`}>
+                <div
+                  className="h-full rounded-full bg-indigo-500"
+                  style={{ width: `${overallProgress}%` }}
+                />
               </div>
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{overallProgress}%</span>
+              <span className={`text-xs font-medium ${inkBody}`}>{overallProgress}%</span>
             </div>
           </div>
 
-          <div className="flex gap-1 border-b border-gray-100 dark:border-gray-700 mb-5">
+          <div className={`flex gap-1 border-b ${borderTint} mb-6`}>
             {tabs.map((tab) => (
               <button
                 key={tab}
@@ -266,7 +246,7 @@ export default function NewProjectPage() {
                 className={`px-4 py-2 text-sm transition-colors border-b-2 -mb-px ${
                   activeTab === tab
                     ? "border-indigo-500 text-indigo-500 font-medium"
-                    : "border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    : `border-transparent ${inkMuted} ${inkHover}`
                 }`}
               >
                 {tab}
@@ -275,25 +255,21 @@ export default function NewProjectPage() {
           </div>
 
           {activeTab === "Overview" && (
-            <div className="rounded-2xl border border-indigo-100 dark:border-indigo-500/20 bg-gradient-to-r from-indigo-50 via-white to-purple-50 dark:from-indigo-900/20 dark:via-gray-800 dark:to-purple-900/20 p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 dark:text-white text-sm mb-1">AI-generated plan</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                    Your project has been broken into {project.phases.length} phases with{" "}
-                    {project.phases.reduce((sum, p) => sum + p.tasks.length, 0)} tasks.
-                    Head to the Tasks tab to get started.
-                  </p>
-                </div>
+            <section>
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={14} className="text-indigo-500 shrink-0" />
+                <h2 className={`${typeHeadline} ${ink}`}>AI-generated plan</h2>
               </div>
-            </div>
+              <p className={`${typeBody} leading-relaxed ${inkBody} max-w-prose`}>
+                Your project has been broken into {project.phases.length} phases with{" "}
+                {project.phases.reduce((sum, p) => sum + p.tasks.length, 0)} tasks. Head to the
+                Tasks tab to get started.
+              </p>
+            </section>
           )}
 
           {activeTab === "Tasks" && (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-8">
               {project.phases.map((phase) => (
                 <PhaseSection
                   key={phase.number}
@@ -306,7 +282,9 @@ export default function NewProjectPage() {
           )}
 
           {activeTab === "Files" && (
-            <button className="flex items-center gap-1.5 px-4 py-2.5 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors">
+            <button
+              className={`flex items-center gap-1.5 py-3 text-xs ${inkMuted} ${inkHover} ${hoverTint} rounded-lg transition-colors`}
+            >
               Upload file
             </button>
           )}

@@ -5,103 +5,101 @@ import { useTasks } from "@/context/TaskContext";
 import TaskItem from "@/components/TaskItem";
 import { useAIAssistant } from "@/context/AIAssistantContext";
 import { groupUpcomingTasks } from "@/lib/utils/task-utils";
+import {
+  ink,
+  inkMuted,
+  inkFaint,
+  borderTint,
+  trackTint,
+  surfacePanel,
+  aiAssistBtn,
+} from "@/lib/ui/tint";
+import { typeDisplay, typeHeadline, typeBody, typeLabel } from "@/lib/ui/type";
 
-// ── component ──────────────────────────────────────────────────────────────
 export default function Upcoming() {
   const { tasks, toggleDone, deleteTask } = useTasks();
   const { togglePanel, setPageContext } = useAIAssistant();
 
-  const {
-    overdueGroup,
-    dateGroups,
-    noDueDate,
-  } = useMemo(
+  const { overdueGroup, dateGroups, noDueDate } = useMemo(
     () => groupUpcomingTasks(tasks),
     [tasks]
   );
 
-  const totalUpcoming =
-    dateGroups.reduce(
-      (n, g) => n + g.tasks.length,
-      0
-    );
+  const totalUpcoming = dateGroups.reduce((n, g) => n + g.tasks.length, 0);
 
   const isEmpty =
     overdueGroup.length === 0 &&
     totalUpcoming === 0 &&
     noDueDate.length === 0;
 
-  // Set page context for AI assistant
   useEffect(() => {
     setPageContext({ page: "upcoming", tasks });
   }, [tasks, setPageContext]);
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
-      {/* Header */}
-      <div className="mb-5">
-        <div className="flex items-start justify-between">
+    <div className={`flex flex-col h-full ${surfacePanel} p-6 overflow-hidden`}>
+      <div className="mb-6 shrink-0">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 leading-tight">Upcoming</h1>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Your tasks organised by due date</p>
+            <h1 className={`${typeDisplay} ${ink}`}>Upcoming</h1>
+            <p className={`${typeBody} ${inkMuted} mt-1`}>
+              Your tasks organised by due date
+            </p>
           </div>
-          <button
-            onClick={() => togglePanel()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
-          >
+          <button onClick={() => togglePanel()} className={aiAssistBtn}>
             <Sparkles size={13} />
             AI Assist
           </button>
         </div>
 
-        {/* Summary pills */}
         {!isEmpty && (
-          <div className="mt-4 flex items-center gap-2 flex-wrap">
+          <div
+            className={`flex items-center gap-5 py-3 mt-5 border-t border-b ${borderTint} flex-wrap gap-y-2`}
+          >
             {overdueGroup.length > 0 && (
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-xs font-medium text-red-500 dark:text-red-400">
-                <Clock size={11} />
+              <div className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
+                <Clock size={13} />
                 {overdueGroup.length} overdue
-              </span>
+              </div>
+            )}
+            {overdueGroup.length > 0 && totalUpcoming > 0 && (
+              <div className={`w-px h-4 ${trackTint}`} />
             )}
             {totalUpcoming > 0 && (
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 text-xs font-medium text-indigo-500 dark:text-indigo-400">
-                <CalendarDays size={11} />
+              <div className={`flex items-center gap-1.5 text-xs ${inkMuted}`}>
+                <CalendarDays size={13} className="text-indigo-500" />
                 {totalUpcoming} upcoming
-              </span>
+              </div>
+            )}
+            {(overdueGroup.length > 0 || totalUpcoming > 0) && noDueDate.length > 0 && (
+              <div className={`w-px h-4 ${trackTint}`} />
             )}
             {noDueDate.length > 0 && (
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-400 dark:text-gray-500">
-                <Inbox size={11} />
+              <div className={`flex items-center gap-1.5 text-xs ${inkMuted}`}>
+                <Inbox size={13} />
                 {noDueDate.length} unscheduled
-              </span>
+              </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Empty state */}
       {isEmpty && (
-        <div className="flex flex-col items-center justify-center flex-1 gap-3 text-gray-300 dark:text-gray-600">
+        <div className={`flex flex-col items-center justify-center flex-1 gap-3 ${inkFaint} py-10`}>
           <CalendarDays size={44} strokeWidth={1.2} />
-          <p className="text-sm text-center">
+          <p className={`${typeBody} text-center`}>
             No tasks yet — add tasks with due dates to see them here.
           </p>
         </div>
       )}
 
-      {/* Scrollable content */}
       {!isEmpty && (
-        <div className="flex flex-col gap-6 flex-1 overflow-y-auto pr-0.5">
-
-          {/* Overdue */}
+        <div className="flex flex-col gap-8 flex-1 overflow-y-auto">
           {overdueGroup.length > 0 && (
             <section>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">
-                  Overdue
-                </span>
-                <div className="flex-1 h-px bg-red-100 dark:bg-red-900" />
-                <span className="text-[11px] text-red-300 dark:text-red-500">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className={`${typeHeadline} text-red-500 dark:text-red-400`}>Overdue</h2>
+                <span className={`${typeLabel} ${inkFaint}`}>
                   {overdueGroup.length} task{overdueGroup.length !== 1 ? "s" : ""}
                 </span>
               </div>
@@ -118,31 +116,20 @@ export default function Upcoming() {
             </section>
           )}
 
-          {/* Upcoming date groups */}
           {dateGroups.map(({ date, label, tasks: groupTasks }) => {
             const isToday = label === "Today";
             const isTomorrow = label === "Tomorrow";
+            const headingColor = isToday
+              ? "text-indigo-500 dark:text-indigo-400"
+              : isTomorrow
+              ? "text-indigo-400 dark:text-indigo-300"
+              : ink;
+
             return (
               <section key={date.toISOString()}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className={`text-xs font-semibold uppercase tracking-wide ${
-                      isToday
-                        ? "text-indigo-500 dark:text-indigo-400"
-                        : isTomorrow
-                        ? "text-violet-400"
-                        : "text-gray-400 dark:text-gray-500"
-                    }`}
-                  >
-                    {label}
-                  </span>
-                  {isToday && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-500 dark:text-indigo-400">
-                      Today
-                    </span>
-                  )}
-                  <div className="flex-1 h-px bg-gray-100 dark:bg-gray-700" />
-                  <span className="text-[11px] text-gray-300 dark:text-gray-500">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className={`${typeHeadline} ${headingColor}`}>{label}</h2>
+                  <span className={`${typeLabel} ${inkFaint}`}>
                     {groupTasks.length} task{groupTasks.length !== 1 ? "s" : ""}
                   </span>
                 </div>
@@ -160,15 +147,11 @@ export default function Upcoming() {
             );
           })}
 
-          {/* Unscheduled */}
           {noDueDate.length > 0 && (
             <section>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-semibold text-gray-300 dark:text-gray-600 uppercase tracking-wide">
-                  No due date
-                </span>
-                <div className="flex-1 h-px bg-gray-100 dark:bg-gray-700" />
-                <span className="text-[11px] text-gray-300 dark:text-gray-500">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className={`${typeHeadline} ${inkMuted}`}>No due date</h2>
+                <span className={`${typeLabel} ${inkFaint}`}>
                   {noDueDate.length} task{noDueDate.length !== 1 ? "s" : ""}
                 </span>
               </div>
