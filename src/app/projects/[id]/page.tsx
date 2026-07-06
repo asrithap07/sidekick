@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
   Sparkles, Target, CheckCircle2, Circle, ChevronRight,
@@ -10,11 +10,16 @@ import {
 
 import { PhaseSection } from "@/components/PhaseSection";
 import { InsightIcon } from "@/lib/utils/insight-icon";
-import { getProject } from "@/lib/api/projects";
+import { getProject, saveProject } from "@/lib/api/projects";
+import { updateTask, createTask, deleteTask } from "@/lib/api/tasks";
 import TaskItem from "@/components/TaskItem";
+import EditTaskModal from "@/components/EditTaskModal";
+import EditProjectModal from "@/components/EditProjectModal";
+import AddTaskModal from "@/components/AddTaskModal";
 import { getDueDateLabel, getTagDisplay } from "@/lib/utils/task-display-utils";
 import { useAIAssistant } from "@/context/AIAssistantContext";
-import type { Project } from "@/types/project";
+import type { Project, Phase } from "@/types/project";
+import type { Task } from "@/types/task";
 
 // Tinted neutral scale — shared with TaskBoard via lib/ui/tint. Previously
 // defined locally here; promoted once a second page needed the same ramp.
@@ -30,6 +35,13 @@ export default function ProjectPage() {
   const [checkedTasks, setCheckedTasks] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("Overview");
   const { togglePanel, setPageContext } = useAIAssistant();
+
+  // Edit modals
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingProject, setEditingProject] = useState(false);
+  const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
+  const [addingTaskToPhase, setAddingTaskToPhase] = useState<Phase | null>(null);
+  const [phaseNameInput, setPhaseNameInput] = useState("");
 
   const tabs = ["Overview", "Tasks", "Insights", "Files"];
 
@@ -57,6 +69,87 @@ export default function ProjectPage() {
       return next;
     });
   }
+
+  const handleEditTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
+    try {
+      await updateTask(taskId, updates);
+      // Refresh project data using the project slug
+      if (id) {
+        getProject(id).then(setProject);
+      }
+    } catch (err) {
+      console.error("Failed to update task:", err);
+    }
+  }, [id]);
+
+  const handleSaveProject = useCallback(async (updates: Partial<Project>) => {
+    if (!project || !id) return;
+    try {
+      await saveProject(id, { ...project, ...updates });
+      setProject((prev) => prev ? { ...prev, ...updates } : null);
+    } catch (err) {
+      console.error("Failed to save project:", err);
+    }
+  }, [project, id]);
+
+  const handleSavePhaseName = useCallback(async () => {
+    if (!editingPhase || !phaseNameInput.trim()) return;
+    try {
+      const res = await fetch(`/api/phases/${editingPhase.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: phaseNameInput.trim() }),
+      });
+      if (!res.ok) throw new Error("Failed to update phase");
+      setProject((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          phases: prev.phases.map((p) =>
+            p.number === editingPhase.number ? { ...p, title: phaseNameInput.trim() } : p
+          ),
+        };
+      });
+      setEditingPhase(null);
+      setPhaseNameInput("");
+    } catch (err) {
+      console.error("Failed to update phase:", err);
+    }
+  }, [editingPhase, phaseNameInput]);
+
+  const handleDeleteTask = useCallback(async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+      if (id) getProject(id).then(setProject);
+    } catch (err) {
+      console.error("Failed to delete task:", err);
+    }
+  }, [id]);
+
+  const handleAddTaskToPhase = useCallback(async (taskData: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[] }) => {
+    if (!addingTaskToPhase || !project) return;
+    try {
+      const created = await createTask({
+        ...taskData,
+        project: project.id,
+        phase_id: addingTaskToPhase.id,
+      } as any);
+      setProject((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          phases: prev.phases.map((p) =>
+            p.number === addingTaskToPhase.number
+              ? { ...p, tasks: [...p.tasks, { ...created, project: project.id }] }
+              : p
+          ),
+        };
+      });
+      setAddingTaskToPhase(null);
+    } catch (err) {
+      console.error("Failed to add task:", err);
+    }
+  }, [addingTaskToPhase, project]);
 
   if (loading) {
     return (
@@ -97,9 +190,12 @@ export default function ProjectPage() {
             <span className={`${ink} font-medium`}>{project.title}</span>
           </div>
           <div className="flex items-center gap-2">
-            <button className={`p-1.5 rounded-lg ${hoverTint} ${inkFaint} transition-colors`}>
-              <MoreHorizontal size={16} />
-            </button>
+              <button
+                onClick={() => setEditingProject(true)}
+                className={`p-1.5 rounded-lg ${hoverTint} ${inkFaint} transition-colors`}
+              >
+                <Pencil size={14} />
+              </button>
             <button
               onClick={() => togglePanel()}
               className={aiAssistBtn}
@@ -118,7 +214,10 @@ export default function ProjectPage() {
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl leading-none">{project.icon}</span>
               <h1 className={`${typeDisplay} ${ink}`}>{project.title}</h1>
-              <button className={`p-1 rounded-lg ${hoverTint} ${inkFaint} transition-colors`}>
+              <button
+                onClick={() => setEditingProject(true)}
+                className={`p-1 rounded-lg ${hoverTint} ${inkFaint} transition-colors`}
+              >
                 <Pencil size={13} />
               </button>
             </div>
@@ -194,14 +293,22 @@ export default function ProjectPage() {
                     const isComplete = phase.status === "completed";
                     const barColor = isComplete ? "bg-green-500" : isActive ? "bg-indigo-500" : trackTint;
                     return (
-                      <div key={phase.number} className="flex items-center gap-4 py-3">
+                      <div key={phase.number} className="flex items-center gap-4 py-3 group">
                         <span className={`text-sm tabular-nums w-5 shrink-0 ${isActive ? "text-indigo-500 font-semibold" : inkFaint}`}>
                           {phase.number}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm ${isActive ? `font-semibold ${ink}` : inkBody} truncate`}>
-                            {phase.title}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className={`text-sm ${isActive ? `font-semibold ${ink}` : inkBody} truncate`}>
+                              {phase.title}
+                            </p>
+                            <button
+                              onClick={() => { setEditingPhase(phase); setPhaseNameInput(phase.title); }}
+                              className={`opacity-0 group-hover:opacity-100 transition-opacity ${inkFaint} ${inkMutedHover} hover:text-indigo-400`}
+                            >
+                              <Pencil size={11} />
+                            </button>
+                          </div>
                           <div className={`h-1 w-full max-w-56 rounded-full ${trackTint} overflow-hidden mt-1.5`}>
                             <div className={`h-full rounded-full ${barColor}`} style={{ width: `${phase.progress}%` }} />
                           </div>
@@ -262,6 +369,12 @@ export default function ProjectPage() {
                     phase={phase}
                     checkedTasks={checkedTasks}
                     onToggleTask={toggleTask}
+                    onEditTask={(taskId) => {
+                      const task = phase.tasks.find((t) => t.id === taskId);
+                      if (task) setEditingTask(task);
+                    }}
+                    onDeleteTask={handleDeleteTask}
+                    onAddTask={() => setAddingTaskToPhase(phase)}
                     showTags
                   />
                 </section>
@@ -278,6 +391,12 @@ export default function ProjectPage() {
                   phase={phase}
                   checkedTasks={checkedTasks}
                   onToggleTask={toggleTask}
+                  onEditTask={(taskId) => {
+                    const task = phase.tasks.find((t) => t.id === taskId);
+                    if (task) setEditingTask(task);
+                  }}
+                  onDeleteTask={handleDeleteTask}
+                  onAddTask={() => setAddingTaskToPhase(phase)}
                   showTags
                 />
               ))}
@@ -334,6 +453,75 @@ export default function ProjectPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <EditTaskModal
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          onSave={(taskId, updates) => {
+            handleEditTask(taskId, updates);
+            setEditingTask(null);
+          }}
+        />
+      )}
+
+      {/* Edit Project Modal */}
+      {editingProject && project && (
+        <EditProjectModal
+          project={project}
+          onClose={() => setEditingProject(false)}
+          onSave={(updates) => {
+            handleSaveProject(updates);
+            setEditingProject(false);
+          }}
+        />
+      )}
+
+      {/* Edit Phase Name Inline */}
+      {editingPhase && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 animate-fade-in"
+          onClick={() => setEditingPhase(null)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 w-full max-w-sm mx-4 animate-fade-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-4">Edit phase name</h2>
+            <input
+              autoFocus
+              type="text"
+              value={phaseNameInput}
+              onChange={(e) => setPhaseNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSavePhaseName()}
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEditingPhase(null)}
+                className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePhaseName}
+                className="px-4 py-2 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors font-medium"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Task to Phase Modal */}
+      {addingTaskToPhase && (
+        <AddTaskModal
+          onClose={() => setAddingTaskToPhase(null)}
+          onAdd={(taskData) => handleAddTaskToPhase(taskData)}
+        />
+      )}
     </div>
   );
 }

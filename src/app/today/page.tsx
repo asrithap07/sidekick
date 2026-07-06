@@ -7,6 +7,9 @@ import {
 import { useTasks } from "@/context/TaskContext";
 import TaskItem from "@/components/TaskItem";
 import AddTaskModal from "@/components/AddTaskModal";
+import EditTaskModal from "@/components/EditTaskModal";
+import { updateTask } from "@/lib/api/tasks";
+import type { Task } from "@/types/task";
 import { useAIAssistant } from "@/context/AIAssistantContext";
 import { getTaskStats } from "@/lib/utils/task-utils";
 import { getTaskInsights } from "@/lib/utils/task-insights";
@@ -23,20 +26,21 @@ const MOMENTUM = "+15%";
 export default function TaskBoard() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
-  const { tasks, addTask, toggleDone, deleteTask, finishAll } = useTasks();
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const { tasks, todayTasks, addTask, toggleDone, deleteTask, finishAll } = useTasks();
   const { togglePanel, setPageContext } = useAIAssistant();
 
   const stats = useMemo(() => getTaskStats(tasks), [tasks]);
   const insights = useMemo(() => getTaskInsights(tasks, stats), [tasks, stats]);
-  const allDone = tasks.length > 0 && tasks.every((t) => t.done);
+  const allDone = todayTasks.length > 0 && todayTasks.every((t) => t.done);
 
   useEffect(() => {
     setPageContext({ page: "today", tasks, stats, streak: STREAK });
   }, [tasks, stats, setPageContext]);
 
   return (
-    <div className="flex h-full gap-3 overflow-hidden">
-      <div className={`flex flex-col flex-1 min-w-0 ${surfacePanel} p-6 overflow-hidden`}>
+    <div className="flex h-full gap-3">
+      <div className={`flex flex-col flex-1 min-w-0 ${surfacePanel} p-6 overflow-y-auto`}>
 
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
@@ -93,7 +97,7 @@ export default function TaskBoard() {
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-1.5">
             <Sparkles size={14} className="text-indigo-500 shrink-0" />
-            <h2 className={`${typeHeadline} ${ink}`}>Today&apos;s plan</h2>
+            <h2 className={`${typeHeadline} ${ink}`}>Today's plan</h2>
           </div>
           <p className={`${typeBody} ${inkBody} max-w-prose`}>
             {stats.overdue > 0
@@ -125,7 +129,7 @@ export default function TaskBoard() {
 
         {/* ── Today's Tasks header ── */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className={`${typeHeadline} ${ink}`}>Today&apos;s Tasks</h2>
+          <h2 className={`${typeHeadline} ${ink}`}>Today's Tasks</h2>
           <div className="flex items-center gap-2">
             <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${borderTint} text-xs ${inkMuted} ${hoverTint} transition-colors`}>
               <Focus size={13} />
@@ -148,23 +152,24 @@ export default function TaskBoard() {
               <span className="text-2xl">🎉</span>
               <div>
                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">All done for today!</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">That&rsquo;s a wrap. Your streak is safe — go enjoy the rest of your day.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Thats a wrap. Your streak is safe — go enjoy the rest of your day.</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Task list */}
-        <div className="flex flex-col gap-2 flex-1 overflow-y-auto animate-stagger">
-          {tasks.map((task) => (
+        <div className="flex flex-col gap-2 animate-stagger">
+          {todayTasks.map((task) => (
             <TaskItem
               key={task.id}
               task={task}
               onToggle={() => toggleDone(task.id)}
+              onEdit={() => setEditingTask(task)}
               onDelete={() => deleteTask(task.id)}
             />
           ))}
-          {tasks.length === 0 && (
+          {todayTasks.length === 0 && (
             <div className={`flex flex-col items-center justify-center flex-1 gap-2 ${inkFaint} py-10`}>
               <Target size={36} strokeWidth={1.2} />
               <p className="text-sm text-center">Your day is a clean slate. What&rsquo;s the first thing you want to get done?</p>
@@ -199,6 +204,18 @@ export default function TaskBoard() {
           onAdd={(task: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[] }) => {
             addTask(task);
             setModalOpen(false);
+          }}
+        />
+      )}
+
+      {editingTask && (
+        <EditTaskModal
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          onSave={async (id, updates) => {
+            await updateTask(id, updates);
+            setEditingTask(null);
+            window.location.reload();
           }}
         />
       )}

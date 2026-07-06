@@ -9,9 +9,14 @@ import { supabase } from "@/lib/supabase";
 
 
 export async function GET() {
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const cutoff = threeDaysAgo.toISOString().split('T')[0];
+
   const { data, error } = await supabase
     .from('tasks')
     .select('*, task_tags(tag), projects(title)')
+    .or(`due_date.gte.${cutoff},due_date.is.null`)
     .order('due_date', { ascending: true, nullsFirst: false })
 
   if (error) {

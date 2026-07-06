@@ -20,6 +20,9 @@ interface PhaseSectionProps {
   phase: Phase;
   checkedTasks: Set<string>;
   onToggleTask: (id: string) => void;
+  onEditTask?: (id: string) => void;
+  onDeleteTask?: (id: string) => void;
+  onAddTask?: () => void;
   showTags?: boolean;
 }
 
@@ -27,6 +30,9 @@ export function PhaseSection({
   phase,
   checkedTasks,
   onToggleTask,
+  onEditTask,
+  onDeleteTask,
+  onAddTask,
 }: PhaseSectionProps) {
   const [collapsed, setCollapsed] = useState(phase.status === "locked");
   const doneCount = phase.tasks.filter((t) => checkedTasks.has(t.id) || t.done).length;
@@ -85,6 +91,8 @@ export function PhaseSection({
                 key={task.id}
                 task={{ ...task, done: isDone }}
                 onToggle={() => onToggleTask(task.id)}
+                onEdit={onEditTask ? () => onEditTask(task.id) : undefined}
+                onDelete={onDeleteTask ? () => onDeleteTask(task.id) : undefined}
                 locked={isLocked}
                 hideProject
               />
@@ -93,6 +101,7 @@ export function PhaseSection({
 
           {!isLocked && (
             <button
+              onClick={onAddTask}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs ${inkMuted} ${inkHover} ${hoverTint} rounded-xl transition-colors`}
             >
               <Plus size={13} />

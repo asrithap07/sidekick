@@ -1,9 +1,12 @@
 "use client";
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { Sparkles, CalendarDays, Clock, Inbox } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
 import TaskItem from "@/components/TaskItem";
+import EditTaskModal from "@/components/EditTaskModal";
+import { updateTask } from "@/lib/api/tasks";
 import { useAIAssistant } from "@/context/AIAssistantContext";
+import type { Task } from "@/types/task";
 import { groupUpcomingTasks } from "@/lib/utils/task-utils";
 import {
   ink,
@@ -19,6 +22,7 @@ import { typeDisplay, typeHeadline, typeBody, typeLabel } from "@/lib/ui/type";
 export default function Upcoming() {
   const { tasks, toggleDone, deleteTask } = useTasks();
   const { togglePanel, setPageContext } = useAIAssistant();
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const { overdueGroup, dateGroups, noDueDate } = useMemo(
     () => groupUpcomingTasks(tasks),
@@ -109,6 +113,7 @@ export default function Upcoming() {
                     key={task.id}
                     task={task}
                     onToggle={() => toggleDone(task.id)}
+                    onEdit={() => setEditingTask(task)}
                     onDelete={() => deleteTask(task.id)}
                   />
                 ))}
@@ -139,6 +144,7 @@ export default function Upcoming() {
                       key={task.id}
                       task={task}
                       onToggle={() => toggleDone(task.id)}
+                      onEdit={() => setEditingTask(task)}
                       onDelete={() => deleteTask(task.id)}
                     />
                   ))}
@@ -161,6 +167,7 @@ export default function Upcoming() {
                     key={task.id}
                     task={task}
                     onToggle={() => toggleDone(task.id)}
+                    onEdit={() => setEditingTask(task)}
                     onDelete={() => deleteTask(task.id)}
                   />
                 ))}
@@ -168,6 +175,17 @@ export default function Upcoming() {
             </section>
           )}
         </div>
+      )}
+      {editingTask && (
+        <EditTaskModal
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          onSave={async (id, updates) => {
+            await updateTask(id, updates);
+            setEditingTask(null);
+            window.location.reload();
+          }}
+        />
       )}
     </div>
   );

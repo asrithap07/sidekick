@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { Task } from "@/types/task";
-import { fetchTasks, createTask, updateTask, deleteTask } from "@/lib/api/tasks";
+import { fetchTasks, fetchTodayTasks, createTask, updateTask, deleteTask } from "@/lib/api/tasks";
 
 // TaskContext is a shared client-side cache over the tasks API.
 // It does NOT own the data — the API (and eventually Supabase) does.
@@ -18,6 +18,7 @@ import { fetchTasks, createTask, updateTask, deleteTask } from "@/lib/api/tasks"
 
 type TaskContextType = {
   tasks: Task[];
+  todayTasks: Task[];
   loading: boolean;
   error: string | null;
   addTask: (task: Omit<Task, "id" | "done">) => Promise<void>;
@@ -30,20 +31,29 @@ const TaskContext = createContext<TaskContextType | null>(null);
 
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [todayTasks, setTodayTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load tasks once on mount
-  useEffect(() => {
-    fetchTasks()
-      .then(setTasks)
+  const loadTasks = useCallback(() => {
+    Promise.all([
+      fetchTasks().then(setTasks),
+      fetchTodayTasks().then(setTodayTasks),
+    ])
       .catch(() => setError("Failed to load tasks"))
       .finally(() => setLoading(false));
   }, []);
 
+  // Load tasks once on mount
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
   const addTask = useCallback(async (data: Omit<Task, "id" | "done">) => {
     const created = await createTask(data);
     setTasks((prev) => [...prev, created]);
+    // Refresh today tasks to reflect the new task
+    fetchTodayTasks().then(setTodayTasks);
   }, []);
 
   const toggleDone = useCallback(async (id: string) => {
@@ -53,6 +63,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
     try {
       await updateTask(id, { done: !task.done });
+      // Refresh today tasks after toggle — done tasks disappear from today view
+      fetchTodayTasks().then(setTodayTasks);
     } catch {
       // Roll back if the API call fails
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: task.done } : t)));
@@ -64,6 +76,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
     try {
       await deleteTask(id);
+      fetchTodayTasks().then(setTodayTasks);
     } catch {
       setTasks(snapshot);
     }
@@ -76,6 +89,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       await Promise.all(
         tasks.filter((t) => !t.done).map((t) => updateTask(t.id, { done: true }))
       );
+      fetchTodayTasks().then(setTodayTasks);
     } catch {
       setTasks(snapshot);
     }
@@ -85,6 +99,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     <TaskContext.Provider
       value={{
         tasks,
+        todayTasks,
         loading,
         error,
         addTask,

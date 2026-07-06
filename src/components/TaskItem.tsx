@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, CalendarDays, Lock } from "lucide-react";
+import { Trash2, Pencil, CalendarDays, Lock } from "lucide-react";
 import React from "react";
 import { Task } from "@/types/task";
 import { hoverTint, inkBody, inkFaint, inkMutedHover } from "@/lib/ui/tint";
@@ -45,6 +45,7 @@ type TaskItemProps = {
   task: Task;
   onToggle: () => void;
   onDelete?: () => void;
+  onEdit?: () => void;
   locked?: boolean;
   /** Hide the project subtitle — use inside project views where context is obvious */
   hideProject?: boolean;
@@ -54,6 +55,7 @@ export default function TaskItem({
   task,
   onToggle,
   onDelete,
+  onEdit,
   locked = false,
   hideProject = false,
 }: TaskItemProps) {
@@ -191,15 +193,26 @@ export default function TaskItem({
         )}
       </div>
 
-      {onDelete && (
-        <button
-          onClick={onDelete}
-          className={`opacity-0 group-hover:opacity-100 transition-opacity ${inkFaint} ${inkMutedHover} hover:text-red-400`}
-          aria-label="Delete task"
-        >
-          <Trash2 size={14} />
-        </button>
-      )}
+      <div className="flex items-center gap-1">
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className={`opacity-0 group-hover:opacity-100 transition-opacity ${inkFaint} ${inkMutedHover} hover:text-indigo-400`}
+            aria-label="Edit task"
+          >
+            <Pencil size={13} />
+          </button>
+        )}
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            className={`opacity-0 group-hover:opacity-100 transition-opacity ${inkFaint} ${inkMutedHover} hover:text-red-400`}
+            aria-label="Delete task"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

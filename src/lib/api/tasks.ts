@@ -6,6 +6,12 @@ export async function fetchTasks(): Promise<Task[]> {
   return res.json();
 }
 
+export async function fetchTodayTasks(): Promise<Task[]> {
+  const res = await fetch("/api/tasks/today");
+  if (!res.ok) throw new Error("Failed to fetch today's tasks");
+  return res.json();
+}
+
 export async function createTask(
   data: Omit<Task, "id" | "done">
 ): Promise<Task> {

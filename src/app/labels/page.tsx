@@ -4,7 +4,10 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Sparkles, Tag, X } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
 import TaskItem from "@/components/TaskItem";
+import EditTaskModal from "@/components/EditTaskModal";
+import { updateTask } from "@/lib/api/tasks";
 import { useAIAssistant } from "@/context/AIAssistantContext";
+import type { Task } from "@/types/task";
 import { getAllLabels, getLabelCounts, filterTasksByLabel, getLabelStyle } from "@/lib/utils/label-utils";
 import { ink, inkMuted, inkFaint, surfacePanel, aiAssistBtn } from "@/lib/ui/tint";
 import { typeDisplay, typeHeadline, typeBody, typeLabel } from "@/lib/ui/type";
@@ -13,6 +16,7 @@ export default function LabelsView() {
   const { tasks, toggleDone, deleteTask } = useTasks();
   const { togglePanel, setPageContext } = useAIAssistant();
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const allLabels = useMemo(() => getAllLabels(tasks), [tasks]);
   const labelCounts = useMemo(() => getLabelCounts(tasks), [tasks]);
@@ -96,12 +100,24 @@ export default function LabelsView() {
                   key={task.id}
                   task={task}
                   onToggle={() => toggleDone(task.id)}
+                  onEdit={() => setEditingTask(task)}
                   onDelete={() => deleteTask(task.id)}
                 />
               ))
             )}
           </div>
         </>
+      )}
+      {editingTask && (
+        <EditTaskModal
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          onSave={async (id, updates) => {
+            await updateTask(id, updates);
+            setEditingTask(null);
+            window.location.reload();
+          }}
+        />
       )}
     </div>
   );

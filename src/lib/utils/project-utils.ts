@@ -8,10 +8,11 @@ import type { Project, Phase } from "@/types/project";
 
 export function draftToProject(draft: ProjectDraft, phases: GeneratedPhase[]): Project {
   const mappedPhases: Phase[] = phases.map((gPhase, i) => ({
+    id: crypto.randomUUID(),
     number: i + 1,
     title: gPhase.name,
     //the first phase becomes in-progress and rest become upcoming
-    status: i === 0 ? "in-progress" : "upcoming",
+    status: i === 0 ? "active" : "upcoming",
     progress: 0,
     tasks: gPhase.tasks.map((gTask) => ({
       id: gTask.id,

@@ -11,6 +11,7 @@ export type { PhaseTask } from "./task";
 //this is onestep of the project with status, progress, and tasks
 
 export interface Phase {
+  id: string;
   number: number;
   title: string;
   status: PhaseStatus;

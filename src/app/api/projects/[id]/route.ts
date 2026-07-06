@@ -10,88 +10,63 @@ type Context = {
 
 // GET /api/projects/[id] — fetch a single project
 
-export async function GET(
-  request: Request,
-  context: Context
-) {
+export async function GET(request: Request, context: Context) {
   try {
-    const {id} = await context.params;
+    const { id } = await context.params;
 
-    //fetch the project row with that id
-    const { data: project, error: projectError} = await supabase
+    const { data: project, error } = await supabase
       .from('projects')
-      .select('*')
+      .select(`
+        *,
+        phases (*, tasks (*)),
+        insights (*),
+        coach_messages (*),
+        attachments (*)
+      `)
       .eq('slug', id)
       .single();
 
-    if (projectError || !project) {
+    if (error || !project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    const projectId = project.id;
+    const { phases, insights, coach_messages, attachments, ...projectFields } = project;
 
-    //fetch phases + the tasks for each phase3
-    const { data: phases, error: phasesError } = await supabase
-      .from('phases')
-      .select(`
-        *,
-        tasks (*)
-      `)
-      .eq('project_id', projectId)
-      .order('number');
-
-    if (phasesError) {
-      return NextResponse.json({ error: phasesError.message }, { status: 500 });
-    }
-
-
-
-    //fetch the insights, coachign, and attachments
-    const [
-      { data: insights },
-      { data: coaching },
-      { data: attachments },
-    ] = await Promise.all([
-      supabase.from('insights').select('*').eq('project_id', projectId),
-      supabase.from('coach_messages').select('*').eq('project_id', projectId),
-      supabase.from('attachments').select('*').eq('project_id', projectId),
-    ]);
-
-    //assemble the full proejct with its progress calculated, its phases and tasks, ingihts, coaching, and attachments
     const assembled = {
-      ...project,
+      ...projectFields,
       progress: phases?.length
-        ? Math.round(phases.reduce((sum, p) => sum + Number(p.progress), 0) / phases.length)
+        ? Math.round(phases.reduce((sum: number, p: any) => sum + Number(p.progress ?? 0), 0) / phases.length)
         : 0,
-      phases: (phases ?? []).map(phase => ({
-        id: phase.id,
-        number: phase.number,
-        title: phase.title,
-        status: phase.status,
-        progress: phase.tasks.length === 0 ? 0 : Math.round(
-          phase.tasks.filter((t: {done: boolean}) => t.done).length 
-          / phase.tasks.length * 100
-        ),
-        tasks: phase.tasks.map((t: any) => ({
-          id: t.id,
-          label: t.label,
-          done: t.done,
-          priority: t.priority,
-          dueDate: t.due_date,
-          tags: [],
+      phases: (phases ?? [])
+        .sort((a: any, b: any) => a.number - b.number)
+        .map((phase: any) => ({
+          id: phase.id,
+          number: phase.number,
+          title: phase.title,
+          status: phase.status,
+          progress: phase.tasks.length === 0
+            ? 0
+            : Math.round(phase.tasks.filter((t: { done: boolean }) => t.done).length / phase.tasks.length * 100),
+          tasks: phase.tasks.map((t: any) => ({
+            id: t.id,
+            label: t.label,
+            done: t.done,
+            priority: t.priority,
+            dueDate: t.due_date,
+            tags: [],
+          })),
         })),
-      })),
-      insights: (insights ?? []).map(i => ({
+      insights: (insights ?? []).map((i: any) => ({
         iconName: i.icon_name,
         title: i.title,
         body: i.body,
       })),
-      coaching: (coaching ?? []).map(c => ({
+      coaching: (coach_messages ?? []).map((c: any) => ({
         type: c.type,
         text: c.message,
         age: new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       })),
-      attachments: (attachments ?? []).map(a => ({
+      attachments: (attachments ?? []).map((a: any) => ({
         name: a.name,
         meta: a.metadata,
       })),
@@ -100,12 +75,8 @@ export async function GET(
     return NextResponse.json(assembled);
   } catch (err) {
     console.error("PROJECT ROUTE CRASHED:", err);
-
-    return NextResponse.json(
-      {error: "Internal server errer"},
-      {status: 500}
-    );
-    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 // PUT /api/projects/[id] — upsert a project (used after generation to save it)
