@@ -9,13 +9,10 @@ import { supabase } from "@/lib/supabase";
 
 
 export async function GET() {
-  const today = new Date().toISOString().split('T')[0]
-
   const { data, error } = await supabase
     .from('tasks')
-    .select('*, task_tags(tag), projects(title)')  // add projects(title)
-    .eq('due_date', today)
-    .eq('done', false)
+    .select('*, task_tags(tag), projects(title)')
+    .order('due_date', { ascending: true, nullsFirst: false })
 
   if (error) {
     console.error(error)
@@ -26,7 +23,7 @@ export async function GET() {
     ...task,
     dueDate: due_date,
     tags: task_tags.map((r: { tag: string }) => r.tag),
-    project: projects?.title ?? null,  // flatten to the string your UI expects
+    project: projects?.title ?? null,
   }))
 
   return NextResponse.json(tasks)

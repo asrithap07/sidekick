@@ -42,7 +42,7 @@ export default function TaskBoard() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className={`${typeDisplay} ${ink}`}>
-              {getGreeting()}, Pristia!
+              {getGreeting()}, Asritha!
             </h1>
             <p className={`${typeBody} ${inkMuted} mt-1`}>
               What do you plan to do today?

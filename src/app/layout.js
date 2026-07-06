@@ -26,7 +26,15 @@ function Shell({ children, theme, setTheme }) {
     "/upcoming": "Upcoming",
     "/goals": "Goals",
   };
-  const activePage = pageMap[pathname] ?? "Today";
+
+  // Map project paths to their display labels for sidebar highlighting
+  const projectMap = {
+    "/projects/run-5k-marathon": "Run 5K Marathon",
+    "/projects/japan-trip-2026": "Japan Trip 2026",
+    "/projects/internship-search": "Internship Search",
+  };
+
+  const activePage = pageMap[pathname] ?? projectMap[pathname] ?? "Today";
 
   return (
     <div className="flex gap-4 w-full h-full">
