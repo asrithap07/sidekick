@@ -9,13 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.17",
     "@opentelemetry/api": "^1.9.1",
     "@supabase/supabase-js": "^2.108.2",
     "@vercel/otel": "^2.1.2",
+    "ai": "^7.0.29",
     "lucide-react": "^0.577.0",
     "next": "^16.2.7",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
