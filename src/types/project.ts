@@ -53,6 +53,7 @@ export interface Project {
   id: string;
   title: string;
   icon: string;
+  slug: string;
   description: string;
   deadline?: string;
   progress: number;

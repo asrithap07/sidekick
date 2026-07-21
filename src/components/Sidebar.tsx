@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   CheckSquare,
@@ -23,6 +23,8 @@ import {
 import AddTaskModal from "@/components/AddTaskModal"
 import {useTasks} from "@/context/TaskContext"
 import useCreateProject from "@/components/UseCreateProject";
+import { getProjects } from "@/lib/api/projects";
+import { Project } from "@/types/project";
 
 const NAV_ITEMS = [
   { icon: CalendarDays, label: "Today" },
@@ -30,11 +32,6 @@ const NAV_ITEMS = [
   { icon: Tag, label: "Labels" },
 ];
 
-const PROJECTS = [
-  { icon: "🏃‍♀️", label: "Run 5K Marathon", id: "run-5k-marathon"},
-  { icon: "✈️", label: "Japan Trip 2026", id: "japan-trip-2026"},
-  { icon: "💼", label: "Internship Search", id: "internship-search"}
-];
 
 type SidebarProps = {
   onAddTask?: () => void;
@@ -54,10 +51,16 @@ function createSlug(name: string) {
 export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, onNavigate}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [isModalOpen, setModalOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]); // ← new: starts as empty array
   const { addTask } = useTasks();
 
   const { openModal, modal } = useCreateProject();
   
+  useEffect(() => {
+    getProjects()
+      .then(setProjects)
+      .catch((err) => console.error("Failed to load projects:", err));
+  }, []);
 
   return (
     <aside
@@ -134,19 +137,19 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
           </div>
 
           <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto">
-            {PROJECTS.map(({ icon, label, id }) => (
+            {projects.map(({ icon, title, slug }) => (
               // <button
-              <Link href={`/projects/${id}`}
-                key={label}
-                onClick={() => onNavigate(label)}
+              <Link href={`/projects/${slug}`}
+                key={title}
+                onClick={() => onNavigate(title)}
                 className={`flex items-center ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-2.5 py-2 text-left"
                     } rounded-lg text-sm transition-colors w-full ${
-                    activePage === label
+                    activePage === title
                         ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-700 dark:hover:text-gray-200"
                     }`}
               >
-                <span className="truncate">{icon} {!collapsed && label}</span>
+                <span className="truncate">{icon} {!collapsed && title}</span>
                 </Link>
               // </button>
             ))}

@@ -5,13 +5,6 @@ import { useRouter } from "next/navigation";
 import type { Step, ProjectDraft } from "@/types/creation";
 import { createProject } from "@/lib/api/projects";
 
-// This hook manages the two modal steps (outcome → clarify).
-// On completion it POSTs the draft to /api/projects, gets back an ID,
-// and navigates to /projects/[id]?status=generating.
-//
-// ProjectCreationContext no longer exists — the draft doesn't need to
-// survive navigation because the project page fetches by ID.
-
 export function useProjectCreation(onClose: () => void) {
   const router = useRouter();
 
@@ -50,24 +43,14 @@ export function useProjectCreation(onClose: () => void) {
     setError(null);
 
     try {
-      // POST to API → get real ID back (mock-123 today, Supabase UUID tomorrow)
-      const { id } = await createProject(finalDraft);
-      onClose();
-      router.push(`/projects/new?status=generating&id=${id}`);
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    const project = await createProject(finalDraft);
+    onClose();
+    router.push(`/projects/${project.slug}`);
+  } catch {
+    setError("Something went wrong. Please try again.");
+    setSubmitting(false);
+  }
   };
 
-  return {
-    step,
-    draft,
-    error,
-    submitting,
-    goTo,
-    handleOutcomeNext,
-    handleClarifyNext,
-  };
+  return { step, draft, error, submitting, goTo, handleOutcomeNext, handleClarifyNext };
 }

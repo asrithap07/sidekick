@@ -14,7 +14,7 @@ export async function GET(request: Request, context: Context) {
   try {
     const { id } = await context.params;
 
-    const { data: project, error } = await supabase
+    const { data: project, error } = await supabase 
       .from('projects')
       .select(`
         *,
@@ -25,9 +25,11 @@ export async function GET(request: Request, context: Context) {
       `)
       .eq('slug', id)
       .single();
+  
 
     if (error || !project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    
     }
 
     const { phases, insights, coach_messages, attachments, ...projectFields } = project;
@@ -117,4 +119,30 @@ export async function PUT(req: Request, context: Context) {
   }
 
   return NextResponse.json(data);
+}
+
+/// DELETE /api/projects/[id] — delete a project (cascades to phases + tasks automatically)
+export async function DELETE(request: Request, context: Context) {
+  const { id: slug } = await context.params;
+
+  const { data: project, error: lookupError } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('slug', slug)
+    .single();
+
+  if (lookupError || !project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  const { error: deleteError } = await supabase
+    .from('projects')
+    .delete()
+    .eq('id', project.id);
+
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

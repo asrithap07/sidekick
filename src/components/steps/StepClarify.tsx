@@ -10,27 +10,16 @@ interface Props {
   initial: Clarifications;
   onNext: (clarifications: Clarifications, skip: boolean) => void;
   onBack: () => void;
+  submitting: boolean; // ← new prop
 }
 
 const QUESTIONS: { key: keyof Clarifications; question: string; placeholder: string }[] = [
-  {
-    key: "c1",
-    question: "Do you already have a resume?",
-    placeholder: "Yes / No / In progress…",
-  },
-  {
-    key: "c2",
-    question: "How comfortable are you with DSA / Leetcode?",
-    placeholder: "Beginner · Some experience · Comfortable…",
-  },
-  {
-    key: "c3",
-    question: "Are you targeting big tech only, or open to mid-size?",
-    placeholder: "Big tech only · Open to all sizes…",
-  },
+  { key: "c1", question: "What's your current starting point?", placeholder: "e.g. complete beginner, some experience, already halfway there…" },
+  { key: "c2", question: "What's your biggest constraint?", placeholder: "e.g. limited time, limited budget, need to learn a new skill first…" },
+  { key: "c3", question: "Anything specific the plan should prioritize?", placeholder: "e.g. speed over thoroughness, want to build a portfolio piece…" },
 ];
 
-export default function StepClarify({ initial, onNext, onBack }: Props) {
+export default function StepClarify({ initial, onNext, onBack, submitting }: Props) {
   const [answers, setAnswers] = useState<Clarifications>(initial);
 
   const set = (key: keyof Clarifications, value: string) =>
@@ -84,12 +73,15 @@ export default function StepClarify({ initial, onNext, onBack }: Props) {
           </button>
           <button
             onClick={() => onNext(answers, false)}
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 text-sm font-medium text-white transition-colors"
+            disabled={submitting}
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 px-4 py-2.5 text-sm font-medium text-white transition-colors"
           >
-            Generate plan
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1.5l1.2 3.7L12 6.5l-3.8 1.3L7 12.5 5.8 7.8 2 6.5l3.8-1.3L7 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-            </svg>
+            {submitting ? "Generating…" : "Generate plan"}
+            {!submitting && (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1.5l1.2 3.7L12 6.5l-3.8 1.3L7 12.5 5.8 7.8 2 6.5l3.8-1.3L7 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+              </svg>
+            )}
           </button>
         </div>
       </div>

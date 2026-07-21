@@ -4,6 +4,8 @@ import StepOutcome from "./steps/StepOutcome";
 import StepClarify from "./steps/StepClarify";
 import type { Step } from "@/types/creation"
 import { useProjectCreation } from "@/lib/utils/project-creation"
+import GeneratingSpinner from "@/components/GeneratingSpinner"
+
 // The modal is now just a form — 2 steps, no async work.
 // Step 1: What are you trying to achieve? (goal, description, date)
 // Step 2: A few quick questions (clarifications)
@@ -33,6 +35,7 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
     step,
     draft,
     error,
+    submitting,
     goTo,
     handleOutcomeNext,
     handleClarifyNext,
@@ -109,18 +112,22 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
 
         {/* Step body */}
         <div className="px-6 pt-4 pb-6">
-          {step === "outcome" && (
-            <StepOutcome
-              initial={draft}
-              onNext={handleOutcomeNext}
-            />
-          )}
-          {step === "clarify" && (
-            <StepClarify
-              initial={draft.clarifications}
-              onNext={handleClarifyNext}
-              onBack={() => goTo("outcome")}
-            />
+          {submitting ? (
+            <GeneratingSpinner />
+          ) : (
+            <>
+              {step === "outcome" && (
+                <StepOutcome initial={draft} onNext={handleOutcomeNext} />
+              )}
+              {step === "clarify" && (
+                <StepClarify
+                  initial={draft.clarifications}
+                  onNext={handleClarifyNext}
+                  onBack={() => goTo("outcome")}
+                  submitting={submitting}
+                />
+              )}
+            </>
           )}
         </div>
       </div>

@@ -31,7 +31,7 @@ export default function StepOutcome({ initial, onNext }: Props) {
             type="text"
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
-            placeholder="e.g. Land a Summer 2027 SWE internship"
+            placeholder="e.g. Land a Summer SWE internship"
             className="w-full rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 px-3.5 py-2.5 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 transition-all"
             autoFocus
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
@@ -46,7 +46,7 @@ export default function StepOutcome({ initial, onNext }: Props) {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="I want a SWE internship at a mid-large tech company by Summer 2027. I'm a sophomore CS student with some project experience."
+            placeholder="I want a SWE internship at a mid-large tech company by this summer. I'm a sophomore CS student with some project experience."
             rows={3}
             className="w-full rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 px-3.5 py-2.5 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 transition-all resize-none"
           />
