@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Sparkles, Target, CheckCircle2, Circle, ChevronRight,
   Plus, Pencil, MoreHorizontal, CalendarDays,
@@ -10,7 +10,7 @@ import {
 
 import { PhaseSection } from "@/components/PhaseSection";
 import { InsightIcon } from "@/lib/utils/insight-icon";
-import { getProject, saveProject } from "@/lib/api/projects";
+import { getProject, saveProject, deleteProject } from "@/lib/api/projects";
 import { updateTask, createTask, deleteTask } from "@/lib/api/tasks";
 import TaskItem from "@/components/TaskItem";
 import EditTaskModal from "@/components/EditTaskModal";
@@ -45,6 +45,8 @@ export default function ProjectPage() {
 
   const tabs = ["Overview", "Tasks", "Insights", "Files"];
 
+  const router = useRouter()
+
   useEffect(() => {
     if (!id) return;
     getProject(id)
@@ -61,6 +63,22 @@ export default function ProjectPage() {
       setPageContext({ page: "project", project });
     }
   }, [project, setPageContext]);
+
+    const handleDeleteProject = useCallback(async () => {
+    if (!id) return;
+    const confirmed = window.confirm(
+      `Delete "${project?.title}"? This will permanently delete all its phases and tasks. This can't be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteProject(id);
+      router.push("/"); // or wherever your project list / Today page lives
+    } catch (err) {
+      console.error("Failed to delete project:", err);
+    }
+  }, [id, project, router]);
+
 
   function toggleTask(id: string) {
     setCheckedTasks((prev) => {
@@ -177,6 +195,7 @@ export default function ProjectPage() {
 
   const totalTasks = project.phases.reduce((sum, p) => sum + p.tasks.length, 0);
   const doneTasks = project.phases.reduce((sum, p) => sum + p.tasks.filter((t) => t.done).length, 0);
+
 
   return (
     <div className="flex h-full gap-3 overflow-hidden">
@@ -475,6 +494,7 @@ export default function ProjectPage() {
             handleSaveProject(updates);
             setEditingProject(false);
           }}
+          onDelete={handleDeleteProject}
         />
       )}
 
