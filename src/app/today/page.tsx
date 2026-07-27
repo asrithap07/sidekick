@@ -23,12 +23,59 @@ export default function TaskBoard() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const { tasks, todayTasks, addTask, dailyState, toggleDone, deleteTask, finishAll } = useTasks();
+
+  const {
+    tasks,
+    todayTasks,
+    addTask,
+    dailyState,
+    briefRefreshing,
+    toggleDone,
+    deleteTask,
+    finishAll,
+  } = useTasks();  
+  
   const { togglePanel, setPageContext } = useAIAssistant();
 
   const stats = useMemo(() => getTaskStats(todayTasks), [todayTasks]);
   const insights = useMemo(() => getTaskInsights(todayTasks, stats), [todayTasks, stats]);
   const allDone = todayTasks.length > 0 && todayTasks.every((t) => t.done);
+
+  // Derive a friendlier brief object from dailyState
+  const dailyBrief = useMemo(() => dailyState ? {
+    focus: dailyState.brief_focus,
+    risk: dailyState.brief_risk,
+    doFirst: dailyState.brief_do_first,
+    avoid: dailyState.brief_avoid,
+  } : null, [dailyState]);
+
+  // Build the AI-sourced insight item (prepended to the deterministic insights)
+  const aiInsight = useMemo(() => {
+    if (!dailyBrief) return null;
+    if (dailyBrief.doFirst) {
+      return {
+        icon: <Sparkles size={13} />,
+        text: dailyBrief.doFirst,
+        color: "text-indigo-500",
+      };
+    }
+    if (dailyBrief.risk) {
+      return {
+        icon: <Sparkles size={13} />,
+        text: dailyBrief.risk,
+        color: "text-amber-500",
+      };
+    }
+    return null;
+  }, [dailyBrief]);
+
+  // Combined insights: AI insight first, then deterministic ones
+  const allInsights = useMemo(() => {
+    const result = [];
+    if (aiInsight) result.push(aiInsight);
+    result.push(...insights);
+    return result;
+  }, [aiInsight, insights]);
 
   useEffect(() => {
     setPageContext({ page: "today", tasks, stats, streak: dailyState?.streak ?? 0 });
@@ -94,12 +141,16 @@ export default function TaskBoard() {
           <div className="flex items-center gap-2 mb-1.5">
             <Sparkles size={14} className="text-indigo-500 shrink-0" />
             <h2 className={`${typeHeadline} ${ink}`}>Today's plan</h2>
+            {briefRefreshing && (
+              <span className={`text-xs ${inkFaint} animate-pulse`}>✨ Updating…</span>
+            )}
           </div>
-          <p className={`${typeBody} ${inkBody} max-w-prose`}>
-            {stats.overdue > 0
-              ? <>You have <span className={`font-semibold ${ink}`}>{stats.overdue} overdue task{stats.overdue > 1 ? "s" : ""}</span>. Tackling the highest-priority one first clears your biggest bottleneck.</>
-              : <>You're off to a great start — <span className={`font-semibold ${ink}`}>{stats.done} task{stats.done !== 1 ? "s" : ""} done</span>. Keep the momentum going.</>
-            }
+          <p className={`${typeBody} ${inkBody} max-w-prose ${briefRefreshing ? 'opacity-60' : ''} transition-opacity`}>
+            {dailyBrief?.focus ?? (
+              stats.overdue > 0
+                ? <>You have <span className={`font-semibold ${ink}`}>{stats.overdue} overdue task{stats.overdue > 1 ? "s" : ""}</span>. Tackling the highest-priority one first clears your biggest bottleneck.</>
+                : <>You're off to a great start — <span className={`font-semibold ${ink}`}>{stats.done} task{stats.done !== 1 ? "s" : ""} done</span>. Keep the momentum going.</>
+            )}
           </p>
           <button
             onClick={() => togglePanel()}
@@ -111,9 +162,9 @@ export default function TaskBoard() {
         </section>
 
         {/* ── Insights — flat list, no per-item box ── */}
-        {insights.length > 0 && (
+        {allInsights.length > 0 && (
           <div className={`mb-6 flex flex-col divide-y ${borderTint}`}>
-            {insights.map((ins, i) => (
+            {allInsights.map((ins, i) => (
               <div key={i} className="flex items-center gap-2 py-2">
                 <span className={ins.color}>{ins.icon}</span>
                 <p className={`text-xs ${inkBody} flex-1`}>{ins.text}</p>
