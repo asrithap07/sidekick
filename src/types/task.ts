@@ -8,6 +8,7 @@ export interface Task {
   project?: string | null; // project id, or null if standalone
   dueDate?: string;       // ISO date string YYYY-MM-DD
   tags: string[];
+  updatedAt: string;
 }
 
 // PhaseTask is a Task that belongs to a project phase.

@@ -1,6 +1,14 @@
 import type { ProjectDraft, GeneratedPhase } from "@/types/creation";
 import type { Project, Phase } from "@/types/project";
 
+
+function createSlug(name: string) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replaceAll(" ", "-");
+}
+
 /*
   draftToProject takes a ProjectDraft + GeneratedPhase[] and produces a realProject.
   Its like the translation function bewtween the creation flow and the app view for projects
@@ -23,6 +31,7 @@ export function draftToProject(draft: ProjectDraft, phases: GeneratedPhase[]): P
       project: draft.goal, // will be replaced with real project ID post-Supabase
       tags: [],
       dueDate: gTask.suggestedDueDate,
+      updatedAt: new Date().toISOString(),
     })),
   }));
 
@@ -30,6 +39,7 @@ export function draftToProject(draft: ProjectDraft, phases: GeneratedPhase[]): P
     id: crypto.randomUUID(),
     icon: "🎯",
     title: draft.goal,
+    slug: createSlug(draft.goal),
     description: draft.description,
     deadline: draft.targetDate || undefined,
     progress: 0,

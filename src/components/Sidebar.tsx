@@ -41,12 +41,7 @@ type SidebarProps = {
   onNavigate: (page: string) => void;
 };
 
-function createSlug(name: string) {
-  return name
-    .toLowerCase()
-    .trim()
-    .replaceAll(" ", "-");
-}
+
 
 export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, onNavigate}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);

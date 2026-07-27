@@ -17,25 +17,21 @@ import { getGreeting } from "@/lib/utils/date-utils";
 import { ink, inkBody, inkMuted, inkFaint, borderTint, hoverTint, trackTint, inkHover, inkMutedHover, surfacePanel, aiAssistBtn } from "@/lib/ui/tint";
 import { typeDisplay, typeHeadline, typeBody } from "@/lib/ui/type";
 
-// Static for now — wire to Supabase/localStorage later.
-// These render as plain inline metadata below, not inside colored cards,
-// specifically so they don't read as more "real-time verified" than they are.
-const STREAK = 7;
-const MOMENTUM = "+15%";
+
 
 export default function TaskBoard() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const { tasks, todayTasks, addTask, toggleDone, deleteTask, finishAll } = useTasks();
+  const { tasks, todayTasks, addTask, dailyState, toggleDone, deleteTask, finishAll } = useTasks();
   const { togglePanel, setPageContext } = useAIAssistant();
 
-  const stats = useMemo(() => getTaskStats(tasks), [tasks]);
-  const insights = useMemo(() => getTaskInsights(tasks, stats), [tasks, stats]);
+  const stats = useMemo(() => getTaskStats(todayTasks), [todayTasks]);
+  const insights = useMemo(() => getTaskInsights(todayTasks, stats), [todayTasks, stats]);
   const allDone = todayTasks.length > 0 && todayTasks.every((t) => t.done);
 
   useEffect(() => {
-    setPageContext({ page: "today", tasks, stats, streak: STREAK });
+    setPageContext({ page: "today", tasks, stats, streak: dailyState?.streak ?? 0 });
   }, [tasks, stats, setPageContext]);
 
   return (
@@ -70,7 +66,7 @@ export default function TaskBoard() {
             into four identical boxes fighting for the same attention. */}
         <div className="flex items-baseline gap-2 mb-1">
           <Flame size={18} className="text-orange-500" />
-          <span className={`text-xl font-semibold tabular-nums ${ink}`}>{STREAK}</span>
+          <span className={`text-xl font-semibold tabular-nums ${ink}`}>{dailyState?.streak ?? 0}</span>
           <span className={`text-sm ${inkMuted}`}>day streak</span>
         </div>
 
@@ -89,7 +85,7 @@ export default function TaskBoard() {
           <div className={`w-px h-4 ${trackTint}`} />
           <div className={`flex items-center gap-1.5 text-xs ${inkMuted}`}>
             <TrendingUp size={13} className="text-indigo-500" />
-            {MOMENTUM} vs last week
+            {dailyState ? `${dailyState.momentum_delta >= 0 ? "+" : ""}${dailyState.momentum_delta}%` : "—"} vs last week
           </div>
         </div>
 
@@ -201,7 +197,7 @@ export default function TaskBoard() {
       {isModalOpen && (
         <AddTaskModal
           onClose={() => setModalOpen(false)}
-          onAdd={(task: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[] }) => {
+          onAdd={(task: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[];}) => {
             addTask(task);
             setModalOpen(false);
           }}

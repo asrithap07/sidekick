@@ -35,14 +35,15 @@ import { z } from "zod";
   });
 
   export const ProjectRiskSchema = z.object({
+    overview: z.string(), // NEW — narrative paragraph for the Overview tab
     riskScore: z.number().min(0).max(100),
     momentumScore: z.number().min(-100).max(100),
     momentumTrend: z.enum(["up", "down", "flat"]),
-    //this is our nested insight object (ai doesnt have to generate an insight everytime so its optional)
     insight: z.object({
       iconName: z.enum(["trending-up", "target", "lightbulb", "zap", "clock"]),
       title: z.string(),
       body: z.string(),
+      confidence: z.number().min(0).max(1).optional(), // NEW — hedge language when inferring things you don't have real data for (e.g. "this task seems foundational" — you have no dependency graph, so the model is guessing from context)
     }).optional(),
     coachingNote: z.object({
       type: z.enum(["encouragement", "warning", "reflection", "recommendation"]),

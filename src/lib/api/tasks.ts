@@ -13,7 +13,7 @@ export async function fetchTodayTasks(): Promise<Task[]> {
 }
 
 export async function createTask(
-  data: Omit<Task, "id" | "done">
+  data: Omit<Task, "id" | "done" | "updatedAt">
 ): Promise<Task> {
   const res = await fetch("/api/tasks", {
     method: "POST",

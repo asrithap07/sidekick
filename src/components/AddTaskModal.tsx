@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 
 type AddTaskModalProps = {
   onClose: () => void;
-  onAdd: (task: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[] }) => void;
+  onAdd: (task: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[];}) => void;
 };
 
 //onClose is a function passed in that closes the modal

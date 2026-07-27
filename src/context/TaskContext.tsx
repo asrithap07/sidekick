@@ -1,27 +1,18 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import type { Task } from "@/types/task";
+import type { DailyState } from "@/types/daily-state";
 import { fetchTasks, fetchTodayTasks, createTask, updateTask, deleteTask } from "@/lib/api/tasks";
-
-// TaskContext is a shared client-side cache over the tasks API.
-// It does NOT own the data — the API (and eventually Supabase) does.
-//
-// Why context and not per-page fetching?
-// Tasks are shown on Today, Upcoming, Labels, and project pages simultaneously.
-// If each page fetched independently, adding a task on Today wouldn't update
-// Upcoming until a full refresh. Context gives us one source of truth on the
-// client without a heavy state management library.
-//
-// When Supabase is ready: swap the functions in src/lib/api/tasks.ts.
-// Nothing in this file or any consumer component needs to change.
 
 type TaskContextType = {
   tasks: Task[];
   todayTasks: Task[];
   loading: boolean;
   error: string | null;
-  addTask: (task: Omit<Task, "id" | "done">) => Promise<void>;
+  dailyState: DailyState | null;
+  briefRefreshing: boolean;
+  addTask: (task: Omit<Task, "id" | "done" | "updatedAt">) => Promise<void>;
   toggleDone: (id: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   finishAll: () => Promise<void>;
@@ -34,6 +25,10 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [todayTasks, setTodayTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [dailyState, setDailyState] = useState<DailyState | null>(null);
+  const [briefRefreshing, setBriefRefreshing] = useState(false);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadTasks = useCallback(() => {
     Promise.all([
@@ -49,38 +44,70 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     loadTasks();
   }, [loadTasks]);
 
-  const addTask = useCallback(async (data: Omit<Task, "id" | "done">) => {
+  // Load today's cached daily state once on mount (safety net — doesn't
+  // generate anything, just reads whatever's already in Supabase for today)
+  useEffect(() => {
+    fetch("/api/daily-state")
+      .then((r) => r.json())
+      .then(setDailyState)
+      .catch(() => {}); // non-critical — Today page just falls back to defaults
+  }, []);
+
+  // Debounced regeneration — called after any task mutation. Waits 600ms
+  // so a burst of actions (e.g. finishAll) only triggers one AI call.
+  const scheduleRefreshBrief = useCallback((currentTodayTasks: Task[]) => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(async () => {
+      setBriefRefreshing(true);
+      try {
+        const res = await fetch("/api/daily-state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tasks: currentTodayTasks }),
+        });
+        setDailyState(await res.json());
+      } catch {
+        // leave the previous dailyState in place on failure
+      } finally {
+        setBriefRefreshing(false);
+      }
+    }, 600);
+  }, []);
+
+  const addTask = useCallback(async (data: Omit<Task, "id" | "done" | "updatedAt">) => {
     const created = await createTask(data);
     setTasks((prev) => [...prev, created]);
-    // Refresh today tasks to reflect the new task
-    fetchTodayTasks().then(setTodayTasks);
-  }, []);
+    const updatedToday = await fetchTodayTasks();
+    setTodayTasks(updatedToday);
+    scheduleRefreshBrief(updatedToday);
+  }, [scheduleRefreshBrief]);
 
   const toggleDone = useCallback(async (id: string) => {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
-    // Optimistic update — UI flips immediately, API call confirms
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
     try {
       await updateTask(id, { done: !task.done });
-      // Refresh today tasks after toggle — done tasks disappear from today view
-      fetchTodayTasks().then(setTodayTasks);
+      const updatedToday = await fetchTodayTasks();
+      setTodayTasks(updatedToday);
+      scheduleRefreshBrief(updatedToday);
     } catch {
-      // Roll back if the API call fails
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: task.done } : t)));
     }
-  }, [tasks]);
+  }, [tasks, scheduleRefreshBrief]);
 
   const removeTask = useCallback(async (id: string) => {
     const snapshot = tasks;
     setTasks((prev) => prev.filter((t) => t.id !== id));
     try {
       await deleteTask(id);
-      fetchTodayTasks().then(setTodayTasks);
+      const updatedToday = await fetchTodayTasks();
+      setTodayTasks(updatedToday);
+      scheduleRefreshBrief(updatedToday);
     } catch {
       setTasks(snapshot);
     }
-  }, [tasks]);
+  }, [tasks, scheduleRefreshBrief]);
 
   const finishAll = useCallback(async () => {
     const snapshot = tasks;
@@ -89,11 +116,13 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       await Promise.all(
         tasks.filter((t) => !t.done).map((t) => updateTask(t.id, { done: true }))
       );
-      fetchTodayTasks().then(setTodayTasks);
+      const updatedToday = await fetchTodayTasks();
+      setTodayTasks(updatedToday);
+      scheduleRefreshBrief(updatedToday);
     } catch {
       setTasks(snapshot);
     }
-  }, [tasks]);
+  }, [tasks, scheduleRefreshBrief]);
 
   return (
     <TaskContext.Provider
@@ -102,6 +131,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         todayTasks,
         loading,
         error,
+        dailyState,
+        briefRefreshing,
         addTask,
         toggleDone,
         deleteTask: removeTask,
