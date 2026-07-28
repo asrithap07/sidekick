@@ -40,3 +40,14 @@ export function formatGroupLabel(date: Date, today: Date, tomorrow: Date): strin
 export function isOverdue(date: Date, today: Date): boolean {
   return startOfDay(date) < startOfDay(today);
 }
+
+export function formatRelativeTime(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}

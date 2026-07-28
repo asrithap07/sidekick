@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Sparkles, Target, CheckCircle2, Circle, ChevronRight,
@@ -20,6 +20,8 @@ import { getDueDateLabel, getTagDisplay } from "@/lib/utils/task-display-utils";
 import { useAIAssistant } from "@/context/AIAssistantContext";
 import type { Project, Phase } from "@/types/project";
 import type { Task } from "@/types/task";
+
+import { formatRelativeTime } from "@/lib/utils/date-utils";
 
 // Tinted neutral scale — shared with TaskBoard via lib/ui/tint. Previously
 // defined locally here; promoted once a second page needed the same ramp.
@@ -43,9 +45,12 @@ export default function ProjectPage() {
   const [addingTaskToPhase, setAddingTaskToPhase] = useState<Phase | null>(null);
   const [phaseNameInput, setPhaseNameInput] = useState("");
 
+  const [analyzing, setAnalyzing] = useState(false);
+  const hasAutoAnalyzed = useRef(false);
+
   const tabs = ["Overview", "Tasks", "Insights", "Files"];
 
-  const router = useRouter()
+  const router = useRouter();
 
   useEffect(() => {
     if (!id) return;
@@ -64,7 +69,7 @@ export default function ProjectPage() {
     }
   }, [project, setPageContext]);
 
-    const handleDeleteProject = useCallback(async () => {
+  const handleDeleteProject = useCallback(async () => {
     if (!id) return;
     const confirmed = window.confirm(
       `Delete "${project?.title}"? This will permanently delete all its phases and tasks. This can't be undone.`
@@ -78,7 +83,6 @@ export default function ProjectPage() {
       console.error("Failed to delete project:", err);
     }
   }, [id, project, router]);
-
 
   function toggleTask(id: string) {
     setCheckedTasks((prev) => {
@@ -169,6 +173,33 @@ export default function ProjectPage() {
     }
   }, [addingTaskToPhase, project]);
 
+  // ── AI insight regeneration ──
+  // Moved above the loading/error early-returns intentionally: hooks (including
+  // useCallback and useEffect) must run in the same order on every render, so
+  // nothing that calls a hook can live after a conditional `return`.
+  const handleRefreshInsights = useCallback(async () => {
+    if (!id || analyzing) return;
+    setAnalyzing(true);
+    try {
+      await fetch(`/api/projects/${id}/analyze`, { method: "POST" });
+      const fresh = await getProject(id);
+      setProject(fresh);
+    } catch (err) {
+      console.error("INSIGHT REFRESH FAILED:", err);
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [id, analyzing]);
+
+  // Auto-trigger once per page visit if the cached overview/insights are stale.
+  // The ref guard means this fires at most once, even if the refresh fails and
+  // analysisStale stays true after refetching — no retry storms.
+  useEffect(() => {
+    if (!project?.analysisStale || hasAutoAnalyzed.current) return;
+    hasAutoAnalyzed.current = true;
+    handleRefreshInsights();
+  }, [project?.analysisStale, handleRefreshInsights]);
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -195,7 +226,6 @@ export default function ProjectPage() {
 
   const totalTasks = project.phases.reduce((sum, p) => sum + p.tasks.length, 0);
   const doneTasks = project.phases.reduce((sum, p) => sum + p.tasks.filter((t) => t.done).length, 0);
-
 
   return (
     <div className="flex h-full gap-3 overflow-hidden">
@@ -297,9 +327,7 @@ export default function ProjectPage() {
                   <h2 className={`${typeHeadline} ${ink}`}>Overview</h2>
                 </div>
                 <p className={`${typeBody} ${inkBody} max-w-prose`}>
-                  You're on track to reach your goal. Focus on completing applications and
-                  strengthening your DSA skills — that's what's carrying the most weight
-                  toward the deadline right now.
+                  {project.overview ?? "You're making progress on this project — check back after a bit of activity for a personalized overview."}
                 </p>
               </section>
 
@@ -424,16 +452,33 @@ export default function ProjectPage() {
 
           {/* ── Insights tab — flat list, no per-item card ── */}
           {activeTab === "Insights" && (
-            <div className={`flex flex-col divide-y ${borderTint}`}>
-              {(project.insights ?? []).map((insight, i) => (
-                <div key={i} className="flex items-start gap-3 py-4">
-                  <InsightIcon iconName={insight.iconName} />
-                  <div>
-                    <h3 className={`${typeTitle} ${ink} mb-0.5`}>{insight.title}</h3>
-                    <p className={`${typeBody} ${inkMuted}`}>{insight.body}</p>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className={`text-xs ${inkFaint}`}>
+                  {project.ai_overview_updated_at
+                    ? `Updated ${formatRelativeTime(project.ai_overview_updated_at)}`
+                    : "Not generated yet"}
+                </span>
+                <button
+                  onClick={handleRefreshInsights}
+                  disabled={analyzing}
+                  className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors disabled:opacity-50"
+                >
+                  <Sparkles size={12} className={analyzing ? "animate-pulse" : ""} />
+                  {analyzing ? "Refreshing…" : "Refresh insights"}
+                </button>
+              </div>
+              <div className={`flex flex-col divide-y ${borderTint}`}>
+                {(project.insights ?? []).map((insight, i) => (
+                  <div key={i} className="flex items-start gap-3 py-4">
+                    <InsightIcon iconName={insight.iconName} />
+                    <div>
+                      <h3 className={`${typeTitle} ${ink} mb-0.5`}>{insight.title}</h3>
+                      <p className={`${typeBody} ${inkMuted}`}>{insight.body}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 

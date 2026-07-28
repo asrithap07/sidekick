@@ -2,10 +2,13 @@ import { generateText, Output } from "ai";
 import { model } from "./client";
 import { ProjectDecompositionSchema } from "./schemas";
 import type { ProjectDraft } from "@/types/creation";
+import { withRateLimit } from "./rate-limit";
+
 
 export async function decomposeProject(draft: ProjectDraft) {
   //get the output directly from the ai sdk
-  const { output } = await generateText({
+  const { output } = await withRateLimit(() => 
+    generateText({
     model,
     //here we define the output formate
     output: Output.object({
@@ -40,7 +43,8 @@ TASK QUALITY RULES:
 - The final phase should move the user toward completing, launching, achieving, or otherwise realizing the original goal.
 
 Return only the structured project plan described by the schema.`,
-  });
-
-  return output.phases;
+  })
+);
+  return output.phases
+  
 }

@@ -34,8 +34,22 @@ export async function GET(request: Request, context: Context) {
 
     const { phases, insights, coach_messages, attachments, ...projectFields } = project;
 
+    // ── Staleness check — compares when the AI overview was last generated
+    // against the most recent task edit in this project. If any task has
+    // changed more recently, the cached overview/insights are out of date.
+    const latestTaskUpdate = phases
+      ?.flatMap((p: any) => p.tasks)
+      .reduce((latest: number, t: any) =>
+        Math.max(latest, new Date(t.updated_at ?? 0).getTime()), 0) ?? 0;
+
+    const analysisStale =
+      !projectFields.ai_overview_updated_at ||
+      latestTaskUpdate > new Date(projectFields.ai_overview_updated_at).getTime();
+
     const assembled = {
       ...projectFields,
+      overview: projectFields.ai_overview ?? null,
+      analysisStale,
       progress: phases?.length
         ? Math.round(phases.reduce((sum: number, p: any) => sum + Number(p.progress ?? 0), 0) / phases.length)
         : 0,
