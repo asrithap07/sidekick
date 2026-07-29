@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         title: draft.goal,
         slug,
         description: draft.description ?? null,
-        deadline: draft.targetDate ?? null,
+        deadline: draft.targetDate?.trim() ? draft.targetDate : null,
         icon: "🎯",
       })
       .select("id, slug")

@@ -76,6 +76,10 @@ export async function POST(request: Request, context: Context) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("PROJECT ANALYSIS FAILED:", err);
+    await supabase
+      .from("projects")
+      .update({ ai_overview_updated_at: new Date().toISOString() }) // mark attempted, even though it failed
+      .eq("id", projectRow.id);
     return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
   }
 }

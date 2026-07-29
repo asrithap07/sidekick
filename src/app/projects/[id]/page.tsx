@@ -16,6 +16,7 @@ import TaskItem from "@/components/TaskItem";
 import EditTaskModal from "@/components/EditTaskModal";
 import EditProjectModal from "@/components/EditProjectModal";
 import AddTaskModal from "@/components/AddTaskModal";
+import GeneratingSpinner from "@/components/GeneratingSpinner";
 import { getDueDateLabel, getTagDisplay } from "@/lib/utils/task-display-utils";
 import { useAIAssistant } from "@/context/AIAssistantContext";
 import type { Project, Phase } from "@/types/project";
@@ -34,7 +35,6 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [checkedTasks, setCheckedTasks] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("Overview");
   const { togglePanel, setPageContext } = useAIAssistant();
 
@@ -84,13 +84,41 @@ export default function ProjectPage() {
     }
   }, [id, project, router]);
 
-  function toggleTask(id: string) {
-    setCheckedTasks((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
+  // ── Task toggle ──
+  // FIX: this previously only flipped a local `checkedTasks` Set and never
+  // called the API, so a checked-off task reverted the moment you refreshed
+  // (nothing was ever written to Supabase). Now it optimistically updates
+  // `project` state for instant feedback, persists via updateTask(), and
+  // rolls back if the request fails.
+  const toggleTask = useCallback(async (taskId: string) => {
+    if (!project) return;
+
+    const task = project.phases.flatMap((p) => p.tasks).find((t) => t.id === taskId);
+    if (!task) return;
+    const newDone = !task.done;
+
+    const applyDone = (done: boolean) => {
+      setProject((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          phases: prev.phases.map((p) => ({
+            ...p,
+            tasks: p.tasks.map((t) => (t.id === taskId ? { ...t, done } : t)),
+          })),
+        };
+      });
+    };
+
+    applyDone(newDone); // optimistic
+
+    try {
+      await updateTask(taskId, { done: newDone });
+    } catch (err) {
+      console.error("Failed to toggle task:", err);
+      applyDone(!newDone); // revert on failure
+    }
+  }, [project]);
 
   const handleEditTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
     try {
@@ -325,10 +353,44 @@ export default function ProjectPage() {
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles size={14} className="text-indigo-500 shrink-0" />
                   <h2 className={`${typeHeadline} ${ink}`}>Overview</h2>
+                  {/* FIX: was no visual sign anything was happening while the
+                      auto-analyze call ran — the placeholder sentence just
+                      sat there for however long the Gemini call took. */}
+                  {analyzing && (
+                    <span className={`text-xs ${inkFaint} flex items-center gap-1`}>
+                      <Sparkles size={11} className="animate-pulse text-indigo-400" />
+                      Generating…
+                    </span>
+                  )}
                 </div>
-                <p className={`${typeBody} ${inkBody} max-w-prose`}>
-                  {project.overview ?? "You're making progress on this project — check back after a bit of activity for a personalized overview."}
-                </p>
+                {analyzing ? (
+                  <svg
+                    className="motion-reduce:animate-none animate-spin w-12 h-12 text-indigo-500"
+                    viewBox="0 0 48 48"
+                    fill="none"
+                    style={{ animationDuration: "0.9s" }}
+                    aria-hidden
+                  >
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="20"
+                      stroke="currentColor"
+                      strokeOpacity="0.15"
+                      strokeWidth="3"
+                    />
+                    <path
+                      d="M24 4a20 20 0 0 1 20 20"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                ) : (
+                  <p className={`${typeBody} ${inkBody} max-w-prose`}>
+                    {project.overview ?? "You're making progress on this project — check back after a bit of activity for a personalized overview."}
+                  </p>
+                )}
               </section>
 
               {/* Phase progress — a flat manifest instead of a grid of identical cards */}
@@ -383,7 +445,10 @@ export default function ProjectPage() {
                   </div>
                   <div className={`flex flex-col divide-y ${borderTint} animate-stagger`}>
                     {todayTasks.map((task) => {
-                      const isDone = checkedTasks.has(task.id);
+                      // FIX: was reading from the now-removed local
+                      // `checkedTasks` overlay. `task.done` is the source of
+                      // truth now that toggleTask() persists to the API.
+                      const isDone = task.done;
                       const tagDisplay = getTagDisplay(task.tags);
                       return (
                         <div key={task.id} className={`flex items-center gap-3 py-2.5 ${hoverTint} -mx-2 px-2 rounded-lg transition-colors group`}>
@@ -414,7 +479,7 @@ export default function ProjectPage() {
                 <section key={phase.number}>
                   <PhaseSection
                     phase={phase}
-                    checkedTasks={checkedTasks}
+                    checkedTasks={new Set()}
                     onToggleTask={toggleTask}
                     onEditTask={(taskId) => {
                       const task = phase.tasks.find((t) => t.id === taskId);
@@ -436,7 +501,7 @@ export default function ProjectPage() {
                 <PhaseSection
                   key={phase.number}
                   phase={phase}
-                  checkedTasks={checkedTasks}
+                  checkedTasks={new Set()}
                   onToggleTask={toggleTask}
                   onEditTask={(taskId) => {
                     const task = phase.tasks.find((t) => t.id === taskId);
@@ -468,17 +533,21 @@ export default function ProjectPage() {
                   {analyzing ? "Refreshing…" : "Refresh insights"}
                 </button>
               </div>
-              <div className={`flex flex-col divide-y ${borderTint}`}>
-                {(project.insights ?? []).map((insight, i) => (
-                  <div key={i} className="flex items-start gap-3 py-4">
-                    <InsightIcon iconName={insight.iconName} />
-                    <div>
-                      <h3 className={`${typeTitle} ${ink} mb-0.5`}>{insight.title}</h3>
-                      <p className={`${typeBody} ${inkMuted}`}>{insight.body}</p>
+              {analyzing ? (
+                <GeneratingSpinner />
+              ) : (
+                <div className={`flex flex-col divide-y ${borderTint}`}>
+                  {(project.insights ?? []).map((insight, i) => (
+                    <div key={i} className="flex items-start gap-3 py-4">
+                      <InsightIcon iconName={insight.iconName} />
+                      <div>
+                        <h3 className={`${typeTitle} ${ink} mb-0.5`}>{insight.title}</h3>
+                        <p className={`${typeBody} ${inkMuted}`}>{insight.body}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
