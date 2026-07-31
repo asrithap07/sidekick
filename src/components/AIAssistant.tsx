@@ -57,13 +57,42 @@ const PROJECT_ANALYZING_MESSAGES = [
 
 // ── Today insights ───────────────────────────────────────────────────────
 
-function TodayInsights({ tasks, stats, streak }: { tasks: Task[]; stats: Stats; streak: number }) {
+function TodayInsights({ tasks, stats, streak, dailyBrief }: { tasks: Task[]; stats: Stats; streak: number; dailyBrief?: { focus: string | null; risk: string | null; doFirst: string | null; avoid: string | null } | null }) {
   const insights: { icon: React.ReactNode; iconBg: string; title: string; body: string }[] = [];
 
+  // AI-powered insights from daily brief
+  if (dailyBrief?.doFirst) {
+    insights.push({
+      icon: <Zap size={14} />,
+      iconBg: "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-500",
+      title: "Do this first",
+      body: dailyBrief.doFirst,
+    });
+  }
+
+  if (dailyBrief?.avoid) {
+    insights.push({
+      icon: <Clock size={14} />,
+      iconBg: "bg-amber-100 dark:bg-amber-900/40 text-amber-500",
+      title: "Try to avoid",
+      body: dailyBrief.avoid,
+    });
+  }
+
+  if (dailyBrief?.risk) {
+    insights.push({
+      icon: <Target size={14} />,
+      iconBg: "bg-red-100 dark:bg-red-900/40 text-red-500",
+      title: "Watch out for",
+      body: dailyBrief.risk,
+    });
+  }
+
+  // Stat-based insights
   const highPriority = tasks.filter((t) => !t.done && t.priority === "high");
   if (highPriority.length > 0) {
     insights.push({
-      icon: <Zap size={14} />,
+      icon: <TrendingUp size={14} />,
       iconBg: "bg-amber-100 dark:bg-amber-900/40 text-amber-500",
       title: `${highPriority.length} high-priority task${highPriority.length > 1 ? "s" : ""} remaining`,
       body: `Start with "${highPriority[0].label}" to make the most impact today.`,
@@ -99,6 +128,19 @@ function TodayInsights({ tasks, stats, streak }: { tasks: Task[]; stats: Stats; 
 
   return (
     <>
+      {/* Overview section — mirrors the project page pattern */}
+      {dailyBrief?.focus && (
+        <>
+          <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-2">
+            Overview
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
+            {dailyBrief.focus}
+          </p>
+        </>
+      )}
+
+      {/* Insights */}
       <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3">
         Today's Insights
       </p>
@@ -467,7 +509,7 @@ Keep responses focused on project planning, task breakdown, and motivation. Be c
         {!hasMessages ? (
           <>
             {pageContext.page === "today" ? (
-              <TodayInsights tasks={pageContext.tasks} stats={pageContext.stats} streak={pageContext.streak} />
+              <TodayInsights tasks={pageContext.tasks} stats={pageContext.stats} streak={pageContext.streak} dailyBrief={pageContext.dailyBrief} />
             ) : pageContext.page === "project" ? (
               <ProjectInsights project={pageContext.project} isAnalyzing={pageContext.isAnalyzing} />
             ) : (

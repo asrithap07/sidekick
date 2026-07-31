@@ -28,8 +28,13 @@ export function groupUpcomingTasks(tasks: Task[]) {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Only show overdue tasks within the last 3 days
+    const threeDaysAgo = new Date(today);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const threeDaysAgoStart = startOfDay(threeDaysAgo);
   
-    // Split tasks into: overdue, upcoming (grouped by date), no-date
+    // Split tasks into: overdue (≤ 3 days), upcoming (grouped by date), no-date
       const overdue: typeof tasks = [];
       const dated: typeof tasks = [];
       const noDue: typeof tasks = [];
@@ -41,8 +46,9 @@ export function groupUpcomingTasks(tasks: Task[]) {
         }
         const d = parseDate(t.dueDate);
         if (!d) { noDue.push(t); return; }
-        if (isOverdue(d, today)) overdue.push(t);
-        else dated.push(t);
+        if (isOverdue(d, today) && d >= threeDaysAgoStart) overdue.push(t);
+        else if (!isOverdue(d, today)) dated.push(t);
+        else noDue.push(t); // overdue by more than 3 days → treat as no-date
       });
   
       // Sort overdue: most recently overdue first

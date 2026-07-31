@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  Sparkles, Plus, Info, Focus, Flame, CheckCircle2,
+  Sparkles, Plus, Info, Flame, CheckCircle2,
   Clock, TrendingUp, Lightbulb, Target
 } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
@@ -78,8 +78,8 @@ export default function TaskBoard() {
   }, [aiInsight, insights]);
 
   useEffect(() => {
-    setPageContext({ page: "today", tasks, stats, streak: dailyState?.streak ?? 0 });
-  }, [tasks, stats, setPageContext]);
+    setPageContext({ page: "today", tasks, stats, streak: dailyState?.streak ?? 0, dailyBrief });
+  }, [tasks, stats, setPageContext, dailyBrief]);
 
   return (
     <div className="flex h-full gap-3">
@@ -89,21 +89,11 @@ export default function TaskBoard() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className={`${typeDisplay} ${ink}`}>
-              {getGreeting()}, Asritha!
+              {getGreeting()}!
             </h1>
             <p className={`${typeBody} ${inkMuted} mt-1`}>
               What do you plan to do today?
             </p>
-          </div>
-          {/* Workspace indicator — dropped the unlabeled "⬆ 1,354" figure and
-              emoji cluster from the previous version; a number with no stated
-              unit or meaning isn't a stat, it's decoration wearing a stat's
-              clothes. An avatar + name is honest about what this actually is. */}
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-              OS
-            </div>
-            <span className={`text-xs font-medium ${inkBody}`}>Odama Studio</span>
           </div>
         </div>
 
@@ -177,19 +167,13 @@ export default function TaskBoard() {
         {/* ── Today's Tasks header ── */}
         <div className="flex items-center justify-between mb-3">
           <h2 className={`${typeHeadline} ${ink}`}>Today's Tasks</h2>
-          <div className="flex items-center gap-2">
-            <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${borderTint} text-xs ${inkMuted} ${hoverTint} transition-colors`}>
-              <Focus size={13} />
-              Focus Mode
-            </button>
-            <button
-              onClick={() => togglePanel()}
-              className={aiAssistBtn}
-            >
-              <Sparkles size={13} />
-              AI Assist
-            </button>
-          </div>
+          <button
+            onClick={() => togglePanel()}
+            className={aiAssistBtn}
+          >
+            <Sparkles size={13} />
+            AI Assist
+          </button>
         </div>
 
         {/* All done celebration */}

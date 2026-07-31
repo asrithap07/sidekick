@@ -6,7 +6,7 @@ import type { Task } from "@/types/task";
 import type { Stats } from "@/types/stats";
 
 export type PageContext =
-  | { page: "today"; tasks: Task[]; stats: Stats; streak: number }
+  | { page: "today"; tasks: Task[]; stats: Stats; streak: number; dailyBrief?: { focus: string | null; risk: string | null; doFirst: string | null; avoid: string | null } | null }
   | { page: "project"; project: Project; isAnalyzing?: boolean }
   | { page: "upcoming"; tasks: Task[] }
   | { page: "labels"; tasks: Task[] }

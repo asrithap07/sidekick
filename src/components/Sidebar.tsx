@@ -211,16 +211,16 @@ export default function Sidebar({ onAddTask, theme, onToggleTheme, activePage, o
         {/* User */}
         {!collapsed && (
           <div className="flex items-center gap-2 mt-2 px-1">
-            <div className="w-7 h-7 rounded-full bg-orange-300 flex items-center justify-center text-xs font-bold text-orange-700">
-              A
+            <div className="w-7 h-7 rounded-full bg-indigo-300 flex items-center justify-center text-xs font-bold text-indigo-700">
+              G
             </div>
             
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">
-                Asritha Pinnamaneni
+                Guest
               </p>
               <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
-                @asrithap07
+                Guest User
               </p>
             </div>
             <ChevronDown size={12} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />

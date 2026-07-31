@@ -9,6 +9,7 @@ import Sidebar from "@/components/Sidebar";
 import AIAssistant from "@/components/AIAssistant";
 import { TaskProvider } from "@/context/TaskContext";
 import { AIAssistantProvider, useAIAssistant } from "@/context/AIAssistantContext";
+import { getProjects } from "@/lib/api/projects";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -19,22 +20,36 @@ function Shell({ children, theme, setTheme }) {
   const { isOpen, closePanel, pageContext } = useAIAssistant();
   const pathname = usePathname();
   const router = useRouter();
+  const [projects, setProjects] = useState([]);
 
-  const pageMap = {
-    "/today": "Today",
-    "/labels": "Labels",
-    "/upcoming": "Upcoming",
-    "/goals": "Goals",
+  useEffect(() => {
+    getProjects()
+      .then(setProjects)
+      .catch((err) => console.error("Failed to load projects:", err));
+  }, []);
+
+  // Dynamically match pathname to a page or project label
+  const getActivePage = () => {
+    // Static pages
+    const pageMap = {
+      "/today": "Today",
+      "/labels": "Labels",
+      "/upcoming": "Upcoming",
+      "/goals": "Goals",
+    };
+    if (pageMap[pathname]) return pageMap[pathname];
+
+    // Project pages — match by slug
+    if (pathname.startsWith("/projects/")) {
+      const slug = pathname.replace("/projects/", "");
+      const project = projects.find((p) => p.slug === slug);
+      if (project) return project.title;
+    }
+
+    return "Today";
   };
 
-  // Map project paths to their display labels for sidebar highlighting
-  const projectMap = {
-    "/projects/run-5k-marathon": "Run 5K Marathon",
-    "/projects/japan-trip-2026": "Japan Trip 2026",
-    "/projects/internship-search": "Internship Search",
-  };
-
-  const activePage = pageMap[pathname] ?? projectMap[pathname] ?? "Today";
+  const activePage = getActivePage();
 
   return (
     <div className="flex gap-4 w-full h-full">
