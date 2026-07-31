@@ -46,7 +46,28 @@ export default function ProjectPage() {
   const [phaseNameInput, setPhaseNameInput] = useState("");
 
   const [analyzing, setAnalyzing] = useState(false);
-  const hasAutoAnalyzed = useRef(false);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Debounced auto-analysis after task mutations ──
+  // Matches the Today page pattern: only regenerates when you actually change
+  // something (add/edit/toggle/delete a task), not on every page load.
+  // Defined before the mutation callbacks so they can reference it.
+  const scheduleRefreshInsights = useCallback(() => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(async () => {
+      if (!id) return;
+      setAnalyzing(true);
+      try {
+        await fetch(`/api/projects/${id}/analyze`, { method: "POST" });
+        const fresh = await getProject(id);
+        setProject(fresh);
+      } catch (err) {
+        console.error("SCHEDULED INSIGHT REFRESH FAILED:", err);
+      } finally {
+        setAnalyzing(false);
+      }
+    }, 2000); // 2s debounce — waits for user to finish making changes
+  }, [id]);
 
   const tabs = ["Overview", "Tasks", "Insights", "Files"];
 
@@ -65,9 +86,9 @@ export default function ProjectPage() {
 
   useEffect(() => {
     if (project) {
-      setPageContext({ page: "project", project });
+      setPageContext({ page: "project", project , isAnalyzing: analyzing});
     }
-  }, [project, setPageContext]);
+  }, [project, analyzing, setPageContext]);
 
   const handleDeleteProject = useCallback(async () => {
     if (!id) return;
@@ -114,11 +135,12 @@ export default function ProjectPage() {
 
     try {
       await updateTask(taskId, { done: newDone });
+      scheduleRefreshInsights();
     } catch (err) {
       console.error("Failed to toggle task:", err);
       applyDone(!newDone); // revert on failure
     }
-  }, [project]);
+  }, [project, scheduleRefreshInsights]);
 
   const handleEditTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
     try {
@@ -127,10 +149,11 @@ export default function ProjectPage() {
       if (id) {
         getProject(id).then(setProject);
       }
+      scheduleRefreshInsights();
     } catch (err) {
       console.error("Failed to update task:", err);
     }
-  }, [id]);
+  }, [id, scheduleRefreshInsights]);
 
   const handleSaveProject = useCallback(async (updates: Partial<Project>) => {
     if (!project || !id) return;
@@ -171,10 +194,11 @@ export default function ProjectPage() {
     try {
       await deleteTask(taskId);
       if (id) getProject(id).then(setProject);
+      scheduleRefreshInsights();
     } catch (err) {
       console.error("Failed to delete task:", err);
     }
-  }, [id]);
+  }, [id, scheduleRefreshInsights]);
 
   const handleAddTaskToPhase = useCallback(async (taskData: { label: string; priority: "high" | "medium" | "low"; dueDate: string; tags: string[] }) => {
     if (!addingTaskToPhase || !project) return;
@@ -196,15 +220,13 @@ export default function ProjectPage() {
         };
       });
       setAddingTaskToPhase(null);
+      scheduleRefreshInsights();
     } catch (err) {
       console.error("Failed to add task:", err);
     }
-  }, [addingTaskToPhase, project]);
+  }, [addingTaskToPhase, project, scheduleRefreshInsights]);
 
-  // ── AI insight regeneration ──
-  // Moved above the loading/error early-returns intentionally: hooks (including
-  // useCallback and useEffect) must run in the same order on every render, so
-  // nothing that calls a hook can live after a conditional `return`.
+  // ── AI insight regeneration (manual) ──
   const handleRefreshInsights = useCallback(async () => {
     if (!id || analyzing) return;
     setAnalyzing(true);
@@ -219,14 +241,6 @@ export default function ProjectPage() {
     }
   }, [id, analyzing]);
 
-  // Auto-trigger once per page visit if the cached overview/insights are stale.
-  // The ref guard means this fires at most once, even if the refresh fails and
-  // analysisStale stays true after refetching — no retry storms.
-  useEffect(() => {
-    if (!project?.analysisStale || hasAutoAnalyzed.current) return;
-    hasAutoAnalyzed.current = true;
-    handleRefreshInsights();
-  }, [project?.analysisStale, handleRefreshInsights]);
 
   if (loading) {
     return (

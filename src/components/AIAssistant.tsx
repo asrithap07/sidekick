@@ -49,7 +49,13 @@ const GENERIC_SUGGESTIONS = [
   "What can you help me with?",
 ];
 
-// ── Insight cards derived from context ──────────────────────────────────
+const PROJECT_ANALYZING_MESSAGES = [
+  "Reviewing phase progress…",
+  "Checking for risks…",
+  "Weighing momentum…",
+];
+
+// ── Today insights ───────────────────────────────────────────────────────
 
 function TodayInsights({ tasks, stats, streak }: { tasks: Task[]; stats: Stats; streak: number }) {
   const insights: { icon: React.ReactNode; iconBg: string; title: string; body: string }[] = [];
@@ -122,23 +128,98 @@ function TodayInsights({ tasks, stats, streak }: { tasks: Task[]; stats: Stats; 
   );
 }
 
-function ProjectInsights({ project }: { project: import("@/types/project").Project }) {
+// ── Project "analyzing" placeholder ─────────────────────────────────────
+
+function ProjectAnalyzing() {
+  const [msgIndex, setMsgIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMsgIndex((i) => Math.min(i + 1, PROJECT_ANALYZING_MESSAGES.length - 1));
+    }, 1200);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <>
-      <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3">
-        Project Insights
-      </p>
-      <div className="flex flex-col gap-3 mb-4">
-        {project.insights.map((insight, i) => (
-          <div key={i} className="flex items-start gap-3">
-            <InsightIcon iconName={insight.iconName} />
-            <div>
-              <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 mb-0.5">{insight.title}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{insight.body}</p>
-            </div>
-          </div>
+    <div className="flex flex-col items-center justify-center py-8 gap-4 text-center mb-5">
+      <div className="w-9 h-9 rounded-lg bg-indigo-500 flex items-center justify-center animate-pulse">
+        <Sparkles size={16} className="text-white" />
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 mb-1">Generating insights…</p>
+        <p key={msgIndex} className="text-[11px] text-gray-400 dark:text-gray-500">
+          {PROJECT_ANALYZING_MESSAGES[msgIndex]}
+        </p>
+      </div>
+      <div className="flex flex-col gap-2 w-full mt-2">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-8 rounded-xl bg-gray-100 dark:bg-gray-700/40 animate-pulse"
+            style={{ opacity: 1 - i * 0.2 }}
+          />
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Project insights ──────────────────────────────────────────────────────
+
+function ProjectInsights({
+  project,
+  isAnalyzing,
+}: {
+  project: import("@/types/project").Project;
+  isAnalyzing?: boolean;
+}) {
+  const hasAnyContent =
+    Boolean(project.overview) || project.insights.length > 0 || project.coaching.length > 0;
+
+  if (isAnalyzing && !hasAnyContent) {
+    return <ProjectAnalyzing />;
+  }
+
+  return (
+    <>
+      {isAnalyzing && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30 mb-4">
+          <Sparkles size={12} className="text-indigo-400 animate-pulse shrink-0" />
+          <p className="text-[11px] text-indigo-600 dark:text-indigo-300">
+            Refreshing insights with your latest activity…
+          </p>
+        </div>
+      )}
+
+      {project.overview && (
+        <>
+          <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-2">
+            Overview
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
+            {project.overview}
+          </p>
+        </>
+      )}
+
+      {project.insights.length > 0 && (
+        <>
+          <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3">
+            Project Insights
+          </p>
+          <div className="flex flex-col gap-3 mb-4">
+            {project.insights.map((insight, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <InsightIcon iconName={insight.iconName} />
+                <div>
+                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 mb-0.5">{insight.title}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{insight.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium mb-3">
         Phase Progress
@@ -174,6 +255,15 @@ function ProjectInsights({ project }: { project: import("@/types/project").Proje
             })}
           </div>
         </>
+      )}
+
+      {!hasAnyContent && !isAnalyzing && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 mb-4">
+          <Lightbulb size={14} className="text-gray-400 shrink-0" />
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">
+            No insights yet — open the Insights tab and hit "Refresh insights" to generate a read on this project.
+          </p>
+        </div>
       )}
     </>
   );
@@ -305,19 +395,21 @@ Keep responses focused on project planning, task breakdown, and motivation. Be c
         content: m.content,
       }));
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system: systemPrompt,
           messages: history,
+          system: systemPrompt,
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`Chat API returned ${response.status}`);
+      }
+
       const data = await response.json();
-      const reply = data.content?.[0]?.text ?? "Sorry, I couldn't get a response. Try again.";
+      const reply = data.content ?? "Sorry, I couldn't get a response. Try again.";
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch {
       setMessages((prev) => [
@@ -377,7 +469,7 @@ Keep responses focused on project planning, task breakdown, and motivation. Be c
             {pageContext.page === "today" ? (
               <TodayInsights tasks={pageContext.tasks} stats={pageContext.stats} streak={pageContext.streak} />
             ) : pageContext.page === "project" ? (
-              <ProjectInsights project={pageContext.project} />
+              <ProjectInsights project={pageContext.project} isAnalyzing={pageContext.isAnalyzing} />
             ) : (
               <DefaultInsights />
             )}

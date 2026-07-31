@@ -7,7 +7,7 @@ import type { Stats } from "@/types/stats";
 
 export type PageContext =
   | { page: "today"; tasks: Task[]; stats: Stats; streak: number }
-  | { page: "project"; project: Project }
+  | { page: "project"; project: Project; isAnalyzing?: boolean }
   | { page: "upcoming"; tasks: Task[] }
   | { page: "labels"; tasks: Task[] }
   | { page: "new-project" }

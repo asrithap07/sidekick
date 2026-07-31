@@ -62,6 +62,5 @@ export interface Project {
   insights: Insight[];
   coaching: CoachingNote[];
   overview?: string;
-  analysisStale?: boolean;
   ai_overview_updated_at?: string | null;
 }
